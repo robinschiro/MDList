@@ -101,24 +101,51 @@ public class MDList<T>
         return mappedKey;
     }
     
-    T Find(int key)
+    private T Find( int key )
     {
     	Node<T> curr, pred;
-    	int dimOfPred, dimOfCurr;
+    	int[] dimOfPred = {0};
+    	int[] dimOfCurr = {0};
     	
     	pred = null;
     	curr = head;
-    	dimOfPred = 0;
-    	dimOfCurr = 0;
     	
-    	// inline function?
-    	LocatePred(KeyToCoord(key), curr, pred, dimOfPred, dimOfCurr);
+    	LocatePred( KeyToCoord(key), curr, pred, dimOfPred, dimOfCurr );
     	
-    	if(dimOfCurr == dimensions)
+    	if( dimOfCurr[0] == dimensions )
     	{
     		return curr.value;
     	}
     	return null;
+    }
+    
+    private void LocatePred( int[] mappedKey, Node<T> curr, Node<T> pred, int[] dimOfPred, int[] dimOfCurr )
+    {
+    	while( dimOfCurr[0] < dimensions )
+    	{
+    		while( curr != null && mappedKey[dimOfCurr[0]] > curr.mappedKey[dimOfCurr[0]] )
+    		{
+    			pred = curr;
+    			dimOfPred[0] = dimOfCurr[0];
+    			AdoptionDescriptor<T> adesc = curr.adoptDesc;
+    			
+    			if( adesc != null && dimOfPred[0] >= adesc.dimOfPred && dimOfPred[0] <= adesc.dimOfCurr )
+    			{
+    				//FinishInserting(curr, adesc);
+    			}
+    			// paper has this as curr = ClearMark(curr.child[dc], Fall)
+    			// does this mean that clear mark should return the node?
+    			ClearMark( curr.children.get(dimOfCurr[0]), Fall );
+    		}
+    		if( curr == null || mappedKey[dimOfCurr[0]] < curr.mappedKey[dimOfCurr[0]] )
+    		{
+    			break;
+    		}
+    		else
+    		{
+    			dimOfCurr[0] = dimOfCurr[0] + 1;
+    		}
+    	}
     }
     
 }
