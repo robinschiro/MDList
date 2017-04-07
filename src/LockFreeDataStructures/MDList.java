@@ -16,14 +16,14 @@ public class MDList<T>
         private ArrayList<AtomicStampedReference<Node<T>>> children;
         private AdoptionDescriptor adoptDesc;
 
-        public Node( int key, int dimensions, T value )
+        public Node( int key, T value )
         {
             this.key = key;
             this.value = value;
             this.children = new ArrayList<>(dimensions);
 
             // Generate mapped key
-            
+            mappedKey = KeyToCoord(key);
         }
     }
 
@@ -50,37 +50,75 @@ public class MDList<T>
 
     // Set upon construction
     private int base;
+    
+    public Node<T> head;
 
     public MDList( int dimensions, int keySpace )
     {
     	this.dimensions = dimensions;
     	this.keySpace = keySpace;
     	this.base = (int) Math.pow(keySpace, 1/dimensions);
+    	head = new Node(0, 0);
     }
     
     
     
-    void SetMark( AtomicStampedReference<Node<T>> node, int mark )
+    private boolean SetMark( AtomicStampedReference<Node<T>> node, int mark )
     {
     	int[] stampHolder = {0};
     	Node<T> pointer = node.get(stampHolder);
     	stampHolder[0] = stampHolder[0] | mark;
-    	node.attemptStamp(pointer, stampHolder[0]);
+    	return node.attemptStamp(pointer, stampHolder[0]);
     }
     
-    void ClearMark( AtomicStampedReference<Node<T>> node, int mark)
+    private boolean ClearMark( AtomicStampedReference<Node<T>> node, int mark)
     {
     	int[] stampHolder = {0};
     	Node<T> pointer = node.get(stampHolder);
     	stampHolder[0] = stampHolder[0] & ~mark;
-    	node.attemptStamp(pointer, stampHolder[0]);
+    	return node.attemptStamp(pointer, stampHolder[0]);
     }
     
-    boolean IsMarked( AtomicStampedReference<Node<T>> node, int mark)
+    private boolean IsMarked( AtomicStampedReference<Node<T>> node, int mark)
     {
     	int stamp = node.getStamp();
     	stamp = 0x3 & stamp;
     	stamp = stamp & mark;
     	return (stamp == mark);
     }
+    
+    private int[] KeyToCoord(int key)
+    {
+    	int partialKey = key;
+        int[] mappedKey = new int[base];
+        
+        for( int dim = dimensions - 1; partialKey > 0; dim-- )
+        {
+        	mappedKey[dim] = partialKey % base;
+        	partialKey = partialKey/base;
+        }
+        
+        return mappedKey;
+    }
+    
+    T Find(int key)
+    {
+    	Node<T> curr, pred;
+    	int dimOfPred, dimOfCurr;
+    	
+    	pred = null;
+    	curr = head;
+    	dimOfPred = 0;
+    	dimOfCurr = 0;
+    	
+    	// inline function?
+    	LocatePred(KeyToCoord(key), curr, pred, dimOfPred, dimOfCurr);
+    	
+    	if(dimOfCurr == dimensions)
+    	{
+    		return curr.value;
+    	}
+    	return null;
+    }
+    
 }
