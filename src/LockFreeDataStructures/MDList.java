@@ -7,6 +7,9 @@ import java.util.concurrent.atomic.AtomicStampedReference;
 
 public class MDList<T>
 {
+    private static final int PRED_INDEX = 0;
+    private static final int CURR_INDEX = 1;
+
     class Node<V>
     {
         private int key;
@@ -128,26 +131,33 @@ public class MDList<T>
         return true;
     }
 
+    // Given a key, find the associated value if a node with the key exists in the MDList.
     private T Find( int key )
     {
-        AtomicStampedReference<Node<T>> currAsr, predAsr;
+        // Create an arraylist in order to pass the pred and curr atomic references by reference.
+        ArrayList<AtomicStampedReference<Node<T>>> predAndCurrAsr = new ArrayList<>(2);
+        // Create arrays for the ints to pass by reference.
         int[] dimOfPred = { 0 };
         int[] dimOfCurr = { 0 };
 
-        predAsr = null;
-        currAsr = head;
+        // Start locating the pred and curr nodes from the head node.
+        predAndCurrAsr.set(CURR_INDEX, head);
 
-        LocatePred(KeyToCoord(key), currAsr, predAsr, dimOfPred, dimOfCurr);
+        LocatePred(KeyToCoord(key), predAndCurrAsr, dimOfPred, dimOfCurr);
 
+        // The find is successful if and only if dimOfCurr int matches the total number of dimensions.
         if ( dimOfCurr[0] == dimensions )
         {
-            return currAsr.getReference().value;
+            return predAndCurrAsr.get(CURR_INDEX).getReference().value;
         }
         return null;
     }
 
-    private void LocatePred( int[] mappedKey, AtomicStampedReference<Node<T>> currAsr, AtomicStampedReference<Node<T>> predAsr, int[] dimOfPred, int[] dimOfCurr )
+    private void LocatePred( int[] mappedKey, ArrayList<AtomicStampedReference<Node<T>>> predAndCurrAsr, int[] dimOfPred, int[] dimOfCurr )
     {
+        AtomicStampedReference<Node<T>> predAsr = predAndCurrAsr.get(PRED_INDEX);
+        AtomicStampedReference<Node<T>> currAsr = predAndCurrAsr.get(CURR_INDEX);
+
         while ( dimOfCurr[0] < dimensions )
         {
             while ( !IsRefNull(currAsr) && mappedKey[dimOfCurr[0]] > currAsr.getReference().mappedKey[dimOfCurr[0]] )
@@ -158,10 +168,9 @@ public class MDList<T>
 
                 if ( adesc != null && dimOfPred[0] >= adesc.dimOfPred && dimOfPred[0] <= adesc.dimOfCurr )
                 {
-                    // FinishInserting(curr, adesc);
+                     FinishInserting(currAsr, adesc);
                 }
-                // paper has this as curr = ClearMark(curr.child[dc], Fall)
-                // does this mean that clear mark should return the node?
+
                 currAsr = ClearMark(currAsr.getReference().children.get(dimOfCurr[0]), Fall);
             }
             if ( IsRefNull(currAsr) || mappedKey[dimOfCurr[0]] < currAsr.getReference().mappedKey[dimOfCurr[0]] )
@@ -170,9 +179,17 @@ public class MDList<T>
             }
             else
             {
-                dimOfCurr[0] = dimOfCurr[0] + 1;
+                dimOfCurr[0]++;
             }
         }
+
+        predAndCurrAsr.set(PRED_INDEX, predAsr);
+        predAndCurrAsr.set(CURR_INDEX, currAsr);
+    }
+
+    private void FinishInserting( AtomicStampedReference<Node<T>> nodeAsr, AdoptionDescriptor<T> adoptDesc )
+    {
+
     }
 
 }
