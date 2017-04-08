@@ -64,7 +64,7 @@ public class MDList<T>
 
     private AtomicStampedReference<Node<T>> SetMark( AtomicStampedReference<Node<T>> node, int mark )
     {
-        if( node != null )
+        if ( node != null )
         {
             int[] stampHolder = { 0 };
             Node<T> pointer = node.get(stampHolder);
@@ -76,7 +76,7 @@ public class MDList<T>
 
     private AtomicStampedReference<Node<T>> ClearMark( AtomicStampedReference<Node<T>> node, int mark )
     {
-        if( node != null )
+        if ( node != null )
         {
             int[] stampHolder = { 0 };
             Node<T> pointer = node.get(stampHolder);
@@ -86,9 +86,11 @@ public class MDList<T>
         return node;
     }
 
+    // Check if the specified bit (or bits) of the stamp are marked.
+    // Return false if the node is null.
     private boolean IsMarked( AtomicStampedReference<Node<T>> node, int mark )
     {
-        if( node != null )
+        if ( node != null )
         {
             int stamp = node.getStamp();
             stamp = 0x3 & stamp;
@@ -112,33 +114,47 @@ public class MDList<T>
         return mappedKey;
     }
 
+    // Determine if either the AtomicStampedReference or the Node that it is wrapping is null.
+    private boolean IsRefNull( AtomicStampedReference<Node<T>> nodeAsr )
+    {
+        if ( null != nodeAsr )
+        {
+            if ( null == nodeAsr.getReference() )
+            {
+                throw new RuntimeException("Node inside AtomicStampedReference is null. This should not happen");
+            }
+            return false;
+        }
+        return true;
+    }
+
     private T Find( int key )
     {
-        AtomicStampedReference<Node<T>> curr, pred;
+        AtomicStampedReference<Node<T>> currAsr, predAsr;
         int[] dimOfPred = { 0 };
         int[] dimOfCurr = { 0 };
 
-        pred = null;
-        curr = head;
+        predAsr = null;
+        currAsr = head;
 
-        LocatePred(KeyToCoord(key), curr, pred, dimOfPred, dimOfCurr);
+        LocatePred(KeyToCoord(key), currAsr, predAsr, dimOfPred, dimOfCurr);
 
         if ( dimOfCurr[0] == dimensions )
         {
-            return curr.getReference().value;
+            return currAsr.getReference().value;
         }
         return null;
     }
 
-    private void LocatePred( int[] mappedKey, AtomicStampedReference<Node<T>> curr, AtomicStampedReference<Node<T>> pred, int[] dimOfPred, int[] dimOfCurr )
+    private void LocatePred( int[] mappedKey, AtomicStampedReference<Node<T>> currAsr, AtomicStampedReference<Node<T>> predAsr, int[] dimOfPred, int[] dimOfCurr )
     {
         while ( dimOfCurr[0] < dimensions )
         {
-            while ( curr.getReference() != null && mappedKey[dimOfCurr[0]] > curr.getReference().mappedKey[dimOfCurr[0]] )
+            while ( !IsRefNull(currAsr) && mappedKey[dimOfCurr[0]] > currAsr.getReference().mappedKey[dimOfCurr[0]] )
             {
-                pred = curr;
+                predAsr = currAsr;
                 dimOfPred[0] = dimOfCurr[0];
-                AdoptionDescriptor<T> adesc = curr.getReference().adoptDesc;
+                AdoptionDescriptor<T> adesc = currAsr.getReference().adoptDesc;
 
                 if ( adesc != null && dimOfPred[0] >= adesc.dimOfPred && dimOfPred[0] <= adesc.dimOfCurr )
                 {
@@ -146,9 +162,9 @@ public class MDList<T>
                 }
                 // paper has this as curr = ClearMark(curr.child[dc], Fall)
                 // does this mean that clear mark should return the node?
-                curr = ClearMark(curr.getReference().children.get(dimOfCurr[0]), Fall);
+                currAsr = ClearMark(currAsr.getReference().children.get(dimOfCurr[0]), Fall);
             }
-            if ( curr.getReference() == null || mappedKey[dimOfCurr[0]] < curr.getReference().mappedKey[dimOfCurr[0]] )
+            if ( IsRefNull(currAsr) || mappedKey[dimOfCurr[0]] < currAsr.getReference().mappedKey[dimOfCurr[0]] )
             {
                 break;
             }
