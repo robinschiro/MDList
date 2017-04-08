@@ -62,28 +62,40 @@ public class MDList<T>
         this.head = new AtomicStampedReference<>(new Node(0, null), 0);
     }
 
-    private boolean SetMark( AtomicStampedReference<Node<T>> node, int mark )
+    private AtomicStampedReference<Node<T>> SetMark( AtomicStampedReference<Node<T>> node, int mark )
     {
-        int[] stampHolder = { 0 };
-        Node<T> pointer = node.get(stampHolder);
-        stampHolder[0] = stampHolder[0] | mark;
-        return node.attemptStamp(pointer, stampHolder[0]);
+        if( node != null )
+        {
+            int[] stampHolder = { 0 };
+            Node<T> pointer = node.get(stampHolder);
+            stampHolder[0] = stampHolder[0] | mark;
+            node.attemptStamp(pointer, stampHolder[0]);
+        }
+        return node;
     }
 
-    private boolean ClearMark( AtomicStampedReference<Node<T>> node, int mark )
+    private AtomicStampedReference<Node<T>> ClearMark( AtomicStampedReference<Node<T>> node, int mark )
     {
-        int[] stampHolder = { 0 };
-        Node<T> pointer = node.get(stampHolder);
-        stampHolder[0] = stampHolder[0] & ~mark;
-        return node.attemptStamp(pointer, stampHolder[0]);
+        if( node != null )
+        {
+            int[] stampHolder = { 0 };
+            Node<T> pointer = node.get(stampHolder);
+            stampHolder[0] = stampHolder[0] & ~mark;
+            node.attemptStamp(pointer, stampHolder[0]);
+        }
+        return node;
     }
 
     private boolean IsMarked( AtomicStampedReference<Node<T>> node, int mark )
     {
-        int stamp = node.getStamp();
-        stamp = 0x3 & stamp;
-        stamp = stamp & mark;
-        return ( stamp == mark );
+        if( node != null )
+        {
+            int stamp = node.getStamp();
+            stamp = 0x3 & stamp;
+            stamp = stamp & mark;
+            return ( stamp == mark );
+        }
+        return false;
     }
 
     private int[] KeyToCoord( int key )
@@ -122,7 +134,7 @@ public class MDList<T>
     {
         while ( dimOfCurr[0] < dimensions )
         {
-            while ( curr != null && mappedKey[dimOfCurr[0]] > curr.getReference().mappedKey[dimOfCurr[0]] )
+            while ( curr.getReference() != null && mappedKey[dimOfCurr[0]] > curr.getReference().mappedKey[dimOfCurr[0]] )
             {
                 pred = curr;
                 dimOfPred[0] = dimOfCurr[0];
@@ -134,9 +146,9 @@ public class MDList<T>
                 }
                 // paper has this as curr = ClearMark(curr.child[dc], Fall)
                 // does this mean that clear mark should return the node?
-                ClearMark(curr.getReference().children.get(dimOfCurr[0]), Fall);
+                curr = ClearMark(curr.getReference().children.get(dimOfCurr[0]), Fall);
             }
-            if ( curr == null || mappedKey[dimOfCurr[0]] < curr.getReference().mappedKey[dimOfCurr[0]] )
+            if ( curr.getReference() == null || mappedKey[dimOfCurr[0]] < curr.getReference().mappedKey[dimOfCurr[0]] )
             {
                 break;
             }
