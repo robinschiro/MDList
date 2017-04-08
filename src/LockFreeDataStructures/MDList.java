@@ -60,9 +60,7 @@ public class MDList<T>
     	this.dimensions = dimensions;
     	this.keySpace = keySpace;
     	this.base = (int) Math.pow(keySpace, 1/dimensions);
-
-    	// Need to find a way to instantiate an AtomicStampedReference with generic type in Node construction.
-    	this.head = null;
+    	this.head = new AtomicStampedReference<>(new Node(0, null), 0);
     }
 
     private boolean SetMark(AtomicStampedReference<Node<T>> node, int mark )
