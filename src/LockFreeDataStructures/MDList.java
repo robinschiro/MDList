@@ -65,7 +65,7 @@ public class MDList<T>
         this.head = new AtomicStampedReference<>(new Node(0, null), 0);
     }
 
-    private AtomicStampedReference<Node<T>> SetMark( AtomicStampedReference<Node<T>> node, int mark )
+    private AtomicStampedReference<Node<T>> SetMark ( AtomicStampedReference<Node<T>> node, int mark )
     {
         if ( node != null )
         {
@@ -77,7 +77,7 @@ public class MDList<T>
         return node;
     }
 
-    private AtomicStampedReference<Node<T>> ClearMark( AtomicStampedReference<Node<T>> node, int mark )
+    private AtomicStampedReference<Node<T>> ClearMark ( AtomicStampedReference<Node<T>> node, int mark )
     {
         if ( node != null )
         {
@@ -91,7 +91,7 @@ public class MDList<T>
 
     // Check if the specified bit (or bits) of the stamp are marked.
     // Return false if the node is null.
-    private boolean IsMarked( AtomicStampedReference<Node<T>> node, int mark )
+    private boolean IsMarked ( AtomicStampedReference<Node<T>> node, int mark )
     {
         if ( node != null )
         {
@@ -103,7 +103,7 @@ public class MDList<T>
         return false;
     }
 
-    private int[] KeyToCoord( int key )
+    private int[] KeyToCoord ( int key )
     {
         int partialKey = key;
         int[] mappedKey = new int[base];
@@ -118,7 +118,7 @@ public class MDList<T>
     }
 
     // Determine if either the AtomicStampedReference or the Node that it is wrapping is null.
-    private boolean IsRefNull( AtomicStampedReference<Node<T>> nodeAsr )
+    private boolean IsRefNull ( AtomicStampedReference<Node<T>> nodeAsr )
     {
         if ( null != nodeAsr )
         {
@@ -132,7 +132,7 @@ public class MDList<T>
     }
 
     // Given a key, find the associated value if a node with the key exists in the MDList.
-    private T Find( int key )
+    private T Find ( int key )
     {
         // Create an arraylist in order to pass the pred and curr atomic references by reference.
         ArrayList<AtomicStampedReference<Node<T>>> predAndCurrAsr = new ArrayList<>(2);
@@ -153,7 +153,7 @@ public class MDList<T>
         return null;
     }
 
-    private void LocatePred( int[] mappedKey, ArrayList<AtomicStampedReference<Node<T>>> predAndCurrAsr, int[] dimOfPred, int[] dimOfCurr )
+    private void LocatePred ( int[] mappedKey, ArrayList<AtomicStampedReference<Node<T>>> predAndCurrAsr, int[] dimOfPred, int[] dimOfCurr )
     {
         AtomicStampedReference<Node<T>> predAsr = predAndCurrAsr.get(PRED_INDEX);
         AtomicStampedReference<Node<T>> currAsr = predAndCurrAsr.get(CURR_INDEX);
@@ -168,7 +168,7 @@ public class MDList<T>
 
                 if ( adesc != null && dimOfPred[0] >= adesc.dimOfPred && dimOfPred[0] <= adesc.dimOfCurr )
                 {
-                     FinishInserting(currAsr, adesc);
+                    FinishInserting(currAsr, adesc);
                 }
 
                 currAsr = ClearMark(currAsr.getReference().children.get(dimOfCurr[0]), Fall);
@@ -187,7 +187,7 @@ public class MDList<T>
         predAndCurrAsr.set(CURR_INDEX, currAsr);
     }
 
-    private void FinishInserting( AtomicStampedReference<Node<T>> nodeAsr, AdoptionDescriptor<T> adoptDesc )
+    private void FinishInserting ( AtomicStampedReference<Node<T>> nodeAsr, AdoptionDescriptor<T> adoptDesc )
     {
 
     }
