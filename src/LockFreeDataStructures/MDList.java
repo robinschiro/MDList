@@ -7,16 +7,16 @@ import java.util.concurrent.atomic.AtomicStampedReference;
 
 public class MDList<T>
 {
-	
-    class Node<T>
+
+    class Node<V>
     {
         private int key;
         private int[] mappedKey;
-        private T value;
-        private ArrayList<AtomicStampedReference<Node<T>>> children;
+        private V value;
+        private ArrayList<AtomicStampedReference<Node<V>>> children;
         private AdoptionDescriptor adoptDesc;
 
-        public Node( int key, T value )
+        public Node( int key, V value )
         {
             this.key = key;
             this.value = value;
@@ -27,13 +27,13 @@ public class MDList<T>
         }
     }
 
-    class AdoptionDescriptor<T>
+    class AdoptionDescriptor<V>
     {
-        AtomicStampedReference<Node<T>> current;
+        AtomicStampedReference<Node<V>> current;
         int dimOfPred;
         int dimOfCurr;
 
-        public AdoptionDescriptor( AtomicStampedReference<Node<T>> current, int dimOfPred, int dimOfCurr )
+        public AdoptionDescriptor( AtomicStampedReference<Node<V>> current, int dimOfPred, int dimOfCurr )
         {
             this.current = current;
             this.dimOfPred = dimOfPred;
@@ -44,100 +44,102 @@ public class MDList<T>
     private static final int Fadp = 0x1;
 	private static final int Fdel = 0x2;
 	private static final int Fall = 0x3;
-	
+
     private int dimensions;
     private int keySpace;
 
-    // Set upon construction
+    // Needed to convert key to set of coordinates in the MDList.
+    // Calculate upon construction.
     private int base;
-    
-    public Node<T> head;
+
+    // The head of the list.
+    public AtomicStampedReference<Node<T>> head;
 
     public MDList( int dimensions, int keySpace )
     {
     	this.dimensions = dimensions;
     	this.keySpace = keySpace;
     	this.base = (int) Math.pow(keySpace, 1/dimensions);
-    	head = new Node(0, 0);
+
+    	// Need to find a way to instantiate an AtomicStampedReference with generic type in Node construction.
+    	this.head = null;
     }
-    
-    
-    
-    private boolean SetMark( AtomicStampedReference<Node<T>> node, int mark )
+
+    private boolean SetMark(AtomicStampedReference<Node<T>> node, int mark )
     {
     	int[] stampHolder = {0};
     	Node<T> pointer = node.get(stampHolder);
     	stampHolder[0] = stampHolder[0] | mark;
     	return node.attemptStamp(pointer, stampHolder[0]);
     }
-    
-    private boolean ClearMark( AtomicStampedReference<Node<T>> node, int mark)
+
+    private boolean ClearMark(AtomicStampedReference<Node<T>> node, int mark)
     {
     	int[] stampHolder = {0};
     	Node<T> pointer = node.get(stampHolder);
     	stampHolder[0] = stampHolder[0] & ~mark;
     	return node.attemptStamp(pointer, stampHolder[0]);
     }
-    
-    private boolean IsMarked( AtomicStampedReference<Node<T>> node, int mark)
+
+    private boolean IsMarked(AtomicStampedReference<Node<T>> node, int mark)
     {
     	int stamp = node.getStamp();
     	stamp = 0x3 & stamp;
     	stamp = stamp & mark;
     	return (stamp == mark);
     }
-    
+
     private int[] KeyToCoord(int key)
     {
     	int partialKey = key;
         int[] mappedKey = new int[base];
-        
+
         for( int dim = dimensions - 1; partialKey > 0; dim-- )
         {
         	mappedKey[dim] = partialKey % base;
         	partialKey = partialKey/base;
         }
-        
+
         return mappedKey;
     }
-    
+
     private T Find( int key )
     {
-    	Node<T> curr, pred;
+        AtomicStampedReference<Node<T>> curr, pred;
     	int[] dimOfPred = {0};
     	int[] dimOfCurr = {0};
-    	
+
     	pred = null;
     	curr = head;
-    	
+
     	LocatePred( KeyToCoord(key), curr, pred, dimOfPred, dimOfCurr );
-    	
+
     	if( dimOfCurr[0] == dimensions )
     	{
-    		return curr.value;
+    		return curr.getReference().value;
     	}
     	return null;
     }
-    
-    private void LocatePred( int[] mappedKey, Node<T> curr, Node<T> pred, int[] dimOfPred, int[] dimOfCurr )
+
+    private void LocatePred( int[] mappedKey, AtomicStampedReference<Node<T>> curr, AtomicStampedReference<Node<T>> pred, int[] dimOfPred, int[] dimOfCurr )
     {
     	while( dimOfCurr[0] < dimensions )
     	{
-    		while( curr != null && mappedKey[dimOfCurr[0]] > curr.mappedKey[dimOfCurr[0]] )
+    		while( curr != null && mappedKey[dimOfCurr[0]] > curr.getReference().mappedKey[dimOfCurr[0]] )
     		{
     			pred = curr;
     			dimOfPred[0] = dimOfCurr[0];
-    			AdoptionDescriptor<T> adesc = curr.adoptDesc;
-    			
+    			AdoptionDescriptor<T> adesc = curr.getReference().adoptDesc;
+
     			if( adesc != null && dimOfPred[0] >= adesc.dimOfPred && dimOfPred[0] <= adesc.dimOfCurr )
     			{
     				//FinishInserting(curr, adesc);
     			}
     			// paper has this as curr = ClearMark(curr.child[dc], Fall)
     			// does this mean that clear mark should return the node?
-    			ClearMark( curr.children.get(dimOfCurr[0]), Fall );
+    			ClearMark( curr.getReference().children.get(dimOfCurr[0]), Fall );
     		}
-    		if( curr == null || mappedKey[dimOfCurr[0]] < curr.mappedKey[dimOfCurr[0]] )
+    		if( curr == null || mappedKey[dimOfCurr[0]] < curr.getReference().mappedKey[dimOfCurr[0]] )
     		{
     			break;
     		}
@@ -147,5 +149,5 @@ public class MDList<T>
     		}
     	}
     }
-    
+
 }
