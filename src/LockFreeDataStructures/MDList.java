@@ -1,7 +1,5 @@
 package LockFreeDataStructures;
 
-// This is a test
-
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicStampedReference;
@@ -101,10 +99,10 @@ public class MDList<T>
 
     /** Helper methods **/
 
-    private void LocatePred ( int[] mappedKey, ArrayList<AtomicStampedReference<Node<T>>> predAndCurrAsr, int[] dimOfPred, int[] dimOfCurr )
+    private void LocatePred ( int[] mappedKey, AtomicStampedReference[] predAndCurrAsr, int[] dimOfPred, int[] dimOfCurr )
     {
-        AtomicStampedReference<Node<T>> predAsr = predAndCurrAsr.get(PRED_INDEX);
-        AtomicStampedReference<Node<T>> currAsr = predAndCurrAsr.get(CURR_INDEX);
+        AtomicStampedReference<Node<T>> predAsr = predAndCurrAsr[PRED_INDEX];
+        AtomicStampedReference<Node<T>> currAsr = predAndCurrAsr[CURR_INDEX];
 
         while ( dimOfCurr[0] < dimensions )
         {
@@ -131,8 +129,8 @@ public class MDList<T>
             }
         }
 
-        predAndCurrAsr.set(PRED_INDEX, predAsr);
-        predAndCurrAsr.set(CURR_INDEX, currAsr);
+        predAndCurrAsr[PRED_INDEX] = predAsr;
+        predAndCurrAsr[CURR_INDEX] = currAsr;
     }
 
     private void FinishInserting ( AtomicStampedReference<Node<T>> adopterAsr, AdoptionDescriptor adoptDesc )
@@ -189,20 +187,20 @@ public class MDList<T>
     public T Find ( int key )
     {
         // Create an arraylist in order to pass the pred and curr atomic references by reference.
-        ArrayList<AtomicStampedReference<Node<T>>> predAndCurrAsr = new ArrayList<>(2);
+        AtomicStampedReference[] predAndCurrAsr = new AtomicStampedReference[2];
         // Create arrays for the ints to pass by reference.
         int[] dimOfPred = { 0 };
         int[] dimOfCurr = { 0 };
 
         // Start locating the pred and curr nodes from the head node.
-        predAndCurrAsr.set(CURR_INDEX, head);
+        predAndCurrAsr[CURR_INDEX] = head;
 
         LocatePred(KeyToCoord(key, base, dimensions), predAndCurrAsr, dimOfPred, dimOfCurr);
 
         // The find is successful if and only if dimOfCurr int matches the total number of dimensions.
         if ( dimOfCurr[0] == dimensions )
         {
-            return predAndCurrAsr.get(CURR_INDEX).getReference().value;
+            return ((Node<T>)predAndCurrAsr[CURR_INDEX].getReference()).value;
         }
         return null;
     }
@@ -212,7 +210,7 @@ public class MDList<T>
     {
         AtomicStampedReference<Node<T>> nodeAsr;
         AtomicStampedReference<Node<T>> predAsr, currAsr;
-        ArrayList<AtomicStampedReference<Node<T>>> predAndCurrAsr = new ArrayList<>(2);
+        AtomicStampedReference[] predAndCurrAsr = new AtomicStampedReference[2];
         int[] dimOfPred = { 0 }, dimOfCurr = { 0 };
         AdoptionDescriptor adesc;
         nodeAsr = new AtomicStampedReference<>(new Node(key, value), 0);
@@ -222,8 +220,8 @@ public class MDList<T>
             // Start at the head with the two references
             predAsr = null;
             currAsr = head;
-            predAndCurrAsr.set(PRED_INDEX, predAsr);
-            predAndCurrAsr.set(CURR_INDEX, currAsr);
+            predAndCurrAsr[PRED_INDEX] = predAsr;
+            predAndCurrAsr[CURR_INDEX] = currAsr;
             // Find the predecessor using LocatePred and the mapped key of the new node
             LocatePred(nodeAsr.getReference().mappedKey, predAndCurrAsr, dimOfPred, dimOfCurr);
             // If the we aren't at a leaf node, get the adoption descriptor
@@ -296,7 +294,7 @@ public class MDList<T>
     public T Delete ( int key )
     {
         AtomicStampedReference<Node<T>> currAsr, predAsr, childAsr, markedAsr;
-        ArrayList<AtomicStampedReference<Node<T>>> predAndCurrAsr = new ArrayList<>(2);
+        AtomicStampedReference[] predAndCurrAsr = new AtomicStampedReference[2];
         int[] dimOfPred = { 0 }, dimOfCurr = { 0 };
 
         while ( true )
@@ -304,8 +302,8 @@ public class MDList<T>
             // Start at the head with the two references
             predAsr = null;
             currAsr = head;
-            predAndCurrAsr.set(PRED_INDEX, predAsr);
-            predAndCurrAsr.set(CURR_INDEX, currAsr);
+            predAndCurrAsr[PRED_INDEX] = predAsr;
+            predAndCurrAsr[CURR_INDEX] = currAsr;
             // Find the predecessor using LocatePred and the mapped key
             LocatePred(KeyToCoord(key, base, dimensions), predAndCurrAsr, dimOfPred, dimOfCurr);
 

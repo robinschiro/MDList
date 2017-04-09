@@ -11,18 +11,14 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import LockFreeDataStructures.ReferenceUtilities;
 import LockFreeDataStructures.MDList;
 
 public class UtilitiesTests
 {
-    private static final int DIMENSIONS = 3;
-    private static final int BASE = 4;
-    // private static MDList<Integer> testList;
-
     @BeforeClass
     public static void setUpBeforeClass () throws Exception
     {
-        // testList = new MDList<>(DIMENSIONS, KEY_SPACE);
     }
 
     @AfterClass
@@ -45,10 +41,10 @@ public class UtilitiesTests
     {
         Object testObject = new Object();
         AtomicStampedReference<Object> testAsr = new AtomicStampedReference<>(testObject, 0);
-        MDList.SetMark(testAsr, MDList.Fadp);
+        ReferenceUtilities.SetMark(testAsr, MDList.Fadp);
 
-        assert(MDList.IsMarked(testAsr, MDList.Fadp));
-        assert(!MDList.IsMarked(testAsr, MDList.Fdel));
+        assert(ReferenceUtilities.IsMarked(testAsr, MDList.Fadp));
+        assert(!ReferenceUtilities.IsMarked(testAsr, MDList.Fdel));
     }
 
     @Test
@@ -56,19 +52,20 @@ public class UtilitiesTests
     {
         Object testObject = new Object();
         AtomicStampedReference<Object> testAsr = new AtomicStampedReference<>(testObject, 0xFFFFFFFF);
-        MDList.ClearMark(testAsr, MDList.Fall);
+        ReferenceUtilities.ClearMark(testAsr, MDList.Fall);
 
-        assert(!MDList.IsMarked(testAsr, MDList.Fall));
+        assert(!ReferenceUtilities.IsMarked(testAsr, MDList.Fall));
     }
 
     @Test
     public void testKeyToCoord ()
     {
+        int base = 4;
+        int dimensions = 3;
         int[] expectedOutput = { 1, 2, 3 };
         int key = 27;
-        int[] actualOutput = MDList.KeyToCoord(key, BASE, DIMENSIONS);
+        int[] actualOutput = MDList.KeyToCoord(key, base, dimensions);
 
         assert(Arrays.equals(expectedOutput, actualOutput));
     }
-
 }
