@@ -25,7 +25,7 @@ public class MDList<T>
             this.children = new ArrayList<>(dimensions);
 
             // Generate mapped key
-            mappedKey = KeyToCoord(key);
+            mappedKey = KeyToCoord(key, MDList.this.base, MDList.this.dimensions);
         }
     }
 
@@ -43,10 +43,10 @@ public class MDList<T>
         }
     }
 
-    private static final int Fadp = 0x1; // Flag 0001
-    private static final int Fdel = 0x2; // Flag 0010
-    private static final int Fall = 0x3; // Flag 0011
-    private static final int StampInc = 0x4; // Increment Stamp by 0100 so it doesn't mess with flags
+    public static final int Fadp = 0x1; // Flag 0001
+    public static final int Fdel = 0x2; // Flag 0010
+    public static final int Fall = 0x3; // Flag 0011
+    public static final int StampInc = 0x4; // Increment Stamp by 0100 so it doesn't mess with flags
 
     private int dimensions;
     private int keySpace;
@@ -66,37 +66,39 @@ public class MDList<T>
         this.head = new AtomicStampedReference<>(new Node(0, null), 0);
     }
 
-    private AtomicStampedReference<Node<T>> SetMark( AtomicStampedReference<Node<T>> node, int mark )
+    /** Utilities **/
+
+    public static AtomicStampedReference SetMark ( AtomicStampedReference asr, int mark )
     {
-        if ( node != null )
+        if ( asr != null )
         {
             int[] stampHolder = { 0 };
-            Node<T> pointer = node.get(stampHolder);
+            Object pointer = asr.get(stampHolder);
             stampHolder[0] = stampHolder[0] | mark;
-            node.attemptStamp(pointer, stampHolder[0]);
+            asr.attemptStamp(pointer, stampHolder[0]);
         }
-        return node;
+        return asr;
     }
 
-    private AtomicStampedReference<Node<T>> ClearMark( AtomicStampedReference<Node<T>> node, int mark )
+    public static AtomicStampedReference ClearMark ( AtomicStampedReference asr, int mark )
     {
-        if ( node != null )
+        if ( asr != null )
         {
             int[] stampHolder = { 0 };
-            Node<T> pointer = node.get(stampHolder);
+            Object pointer = asr.get(stampHolder);
             stampHolder[0] = stampHolder[0] & ~mark;
-            node.attemptStamp(pointer, stampHolder[0]);
+            asr.attemptStamp(pointer, stampHolder[0]);
         }
-        return node;
+        return asr;
     }
 
     // Check if the specified bit (or bits) of the stamp are marked.
     // Return false if the node is null.
-    private boolean IsMarked( AtomicStampedReference<Node<T>> node, int mark )
+    public static boolean IsMarked ( AtomicStampedReference asr, int mark )
     {
-        if ( node != null )
+        if ( asr != null )
         {
-            int stamp = node.getStamp();
+            int stamp = asr.getStamp();
             stamp = 0x3 & stamp;
             stamp = stamp & mark;
             return ( stamp == mark );
@@ -104,10 +106,10 @@ public class MDList<T>
         return false;
     }
 
-    private int[] KeyToCoord( int key )
+    public static int[] KeyToCoord ( int key, int base, int dimensions )
     {
         int partialKey = key;
-        int[] mappedKey = new int[base];
+        int[] mappedKey = new int[dimensions];
 
         for ( int dim = dimensions - 1; partialKey > 0; dim-- )
         {
@@ -119,7 +121,7 @@ public class MDList<T>
     }
 
     // Determine if either the AtomicStampedReference or the Node that it is wrapping is null.
-    private boolean IsRefNull( AtomicStampedReference<Node<T>> nodeAsr )
+    private boolean IsRefNull ( AtomicStampedReference<Node<T>> nodeAsr )
     {
         if ( null != nodeAsr )
         {
@@ -133,7 +135,7 @@ public class MDList<T>
     }
 
     // Given a key, find the associated value if a node with the key exists in the MDList.
-    private T Find( int key )
+    private T Find ( int key )
     {
         // Create an arraylist in order to pass the pred and curr atomic references by reference.
         ArrayList<AtomicStampedReference<Node<T>>> predAndCurrAsr = new ArrayList<>(2);
@@ -144,7 +146,7 @@ public class MDList<T>
         // Start locating the pred and curr nodes from the head node.
         predAndCurrAsr.set(CURR_INDEX, head);
 
-        LocatePred(KeyToCoord(key), predAndCurrAsr, dimOfPred, dimOfCurr);
+        LocatePred(KeyToCoord(key, base, dimensions), predAndCurrAsr, dimOfPred, dimOfCurr);
 
         // The find is successful if and only if dimOfCurr int matches the total number of dimensions.
         if ( dimOfCurr[0] == dimensions )
@@ -154,7 +156,7 @@ public class MDList<T>
         return null;
     }
 
-    private void LocatePred( int[] mappedKey, ArrayList<AtomicStampedReference<Node<T>>> predAndCurrAsr, int[] dimOfPred, int[] dimOfCurr )
+    private void LocatePred ( int[] mappedKey, ArrayList<AtomicStampedReference<Node<T>>> predAndCurrAsr, int[] dimOfPred, int[] dimOfCurr )
     {
         AtomicStampedReference<Node<T>> predAsr = predAndCurrAsr.get(PRED_INDEX);
         AtomicStampedReference<Node<T>> currAsr = predAndCurrAsr.get(CURR_INDEX);
@@ -188,7 +190,7 @@ public class MDList<T>
         predAndCurrAsr.set(CURR_INDEX, currAsr);
     }
 
-    private void FinishInserting( AtomicStampedReference<Node<T>> nodeAsr, AdoptionDescriptor<T> adoptDesc )
+    private void FinishInserting ( AtomicStampedReference<Node<T>> nodeAsr, AdoptionDescriptor<T> adoptDesc )
     {
 
     }
