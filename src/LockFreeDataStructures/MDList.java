@@ -324,5 +324,23 @@ public class MDList<T>
             }
         }
     }
+    
+    public void PrintList(AtomicStampedReference<Node<Integer>> node)
+    {
+        for ( int dim = 0; dim < dimensions; dim++)
+        {
+            if ( node.getReference() != null )
+            {
+                System.out.print(node.getReference().key + " -- (");
+                for ( int num : node.getReference().mappedKey )
+                {
+                    System.out.print(node.getReference().mappedKey[num] + ", ");
+                }
+                System.out.println(") -- " + node.getReference().value);
+                
+                PrintList(node.getReference().children.get(dim));
+            }
+        }
+    }
 
 }
