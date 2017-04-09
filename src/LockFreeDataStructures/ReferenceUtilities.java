@@ -6,6 +6,8 @@ import LockFreeDataStructures.MDList.Node;
 
 public final class ReferenceUtilities
 {
+    private static final String NULL_ERROR_MESSAGE = "The AtomicStampedReference is null.";
+
     public static AtomicStampedReference SetMark ( AtomicStampedReference asr, int mark )
     {
         if ( asr != null )
@@ -14,8 +16,9 @@ public final class ReferenceUtilities
             Object pointer = asr.get(stampHolder);
             stampHolder[0] = stampHolder[0] | mark;
             asr.attemptStamp(pointer, stampHolder[0]);
+            return asr;
         }
-        return asr;
+        throw new NullPointerException(NULL_ERROR_MESSAGE);
     }
 
     public static AtomicStampedReference ClearMark ( AtomicStampedReference asr, int mark )
@@ -26,8 +29,9 @@ public final class ReferenceUtilities
             Object pointer = asr.get(stampHolder);
             stampHolder[0] = stampHolder[0] & ~mark;
             asr.attemptStamp(pointer, stampHolder[0]);
+            return asr;
         }
-        return asr;
+        throw new NullPointerException(NULL_ERROR_MESSAGE);
     }
 
     // Check if the specified bit (or bits) of the stamp are marked.
@@ -41,7 +45,7 @@ public final class ReferenceUtilities
             stamp = stamp & mark;
             return ( stamp == mark );
         }
-        return false;
+        throw new NullPointerException(NULL_ERROR_MESSAGE);
     }
 
     public static AtomicStampedReference CloneAsr ( AtomicStampedReference asrToClone )
@@ -56,6 +60,6 @@ public final class ReferenceUtilities
         {
             return null == nodeAsr.getReference();
         }
-        throw new RuntimeException("The AtomicStampedReference is null. This should not happen");
+        throw new RuntimeException(NULL_ERROR_MESSAGE);
     }
 }
