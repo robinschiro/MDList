@@ -43,9 +43,10 @@ public class MDList<T>
         }
     }
 
-    private static final int Fadp = 0x1;
-    private static final int Fdel = 0x2;
-    private static final int Fall = 0x3;
+    private static final int Fadp = 0x1; // Flag 0001
+    private static final int Fdel = 0x2; // Flag 0010
+    private static final int Fall = 0x3; // Flag 0011
+    private static final int StampInc = 0x4; // Increment Stamp by 0100 so it doesn't mess with flags
 
     private int dimensions;
     private int keySpace;
@@ -168,7 +169,7 @@ public class MDList<T>
 
                 if ( adesc != null && dimOfPred[0] >= adesc.dimOfPred && dimOfPred[0] <= adesc.dimOfCurr )
                 {
-                     FinishInserting(currAsr, adesc);
+                    FinishInserting(currAsr, adesc);
                 }
 
                 currAsr = ClearMark(currAsr.getReference().children.get(dimOfCurr[0]), Fall);
@@ -190,6 +191,82 @@ public class MDList<T>
     private void FinishInserting( AtomicStampedReference<Node<T>> nodeAsr, AdoptionDescriptor<T> adoptDesc )
     {
 
+    }
+
+    private void Insert( int key, T value )
+    {
+        AtomicStampedReference<Node<T>> nodeAsr;
+        AtomicStampedReference<Node<T>> predAsr, currAsr;
+        ArrayList<AtomicStampedReference<Node<T>>> predAndCurrAsr = new ArrayList<>(2);
+        int[] dimOfPred = { 0 }, dimOfCurr = { 0 };
+        AdoptionDescriptor<T> adesc;
+        nodeAsr = new AtomicStampedReference<>(new Node(key, value), 0);
+
+        while ( true )
+        {
+            predAsr = null;
+            currAsr = head;
+            predAndCurrAsr.set(PRED_INDEX, predAsr);
+            predAndCurrAsr.set(CURR_INDEX, currAsr);
+
+            LocatePred(nodeAsr.getReference().mappedKey, predAndCurrAsr, dimOfPred, dimOfCurr);
+
+            if ( !IsRefNull(currAsr) )
+            {
+                adesc = currAsr.getReference().adoptDesc;
+            }
+            else
+            {
+                adesc = null;
+            }
+
+            if ( adesc != null && dimOfPred[0] != dimOfCurr[0] )
+            {
+                FinishInserting(currAsr, adesc);
+            }
+
+            if ( IsMarked(predAsr.getReference().children.get(dimOfPred[0]), Fdel) )
+            {
+                currAsr = SetMark(currAsr, Fdel);
+                if ( dimOfCurr[0] == dimensions - 1 )
+                {
+                    dimOfCurr[0] = dimensions;
+                }
+            }
+            
+            // FillNewNode start
+            adesc = null;
+            if ( dimOfPred[0] != dimOfCurr[0] )
+            {
+                adesc = new AdoptionDescriptor<T>(currAsr, dimOfPred[0], dimOfCurr[0]);
+            }
+            for ( int dim = 0; dim < dimOfPred[0]; dim++ )
+            {
+                nodeAsr.getReference().children.set(dim, new AtomicStampedReference<>(null, Fadp));
+            }
+            for ( int dim = dimOfPred[0]; dim < dimensions; dim++ )
+            {
+                nodeAsr.getReference().children.set(dim, null);
+            }
+            if ( dimOfCurr[0] < dimensions )
+            {
+                nodeAsr.getReference().children.set(dimOfCurr[0], currAsr);
+            }
+            nodeAsr.getReference().adoptDesc = adesc;
+            // FillNewNode done
+            
+            int currStamp = currAsr.getStamp();
+            int nodeStamp = nodeAsr.getStamp();
+            nodeStamp += 4;
+            if ( predAsr.getReference().children.get(dimOfPred[0]).compareAndSet(currAsr.getReference(), nodeAsr.getReference(), currStamp, nodeStamp) )
+            {
+                if ( adesc != null )
+                {
+                    FinishInserting(nodeAsr, adesc);
+                }
+                break;
+            }
+        }
     }
 
 }
