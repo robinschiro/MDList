@@ -5,12 +5,15 @@ import java.util.concurrent.atomic.AtomicMarkableReference;
 
 public class SkipList<T>
 {
-    static final int MAX_LEVEL = 5;
-    final Node<T> head = new Node<T>(Integer.MIN_VALUE);
-    final Node<T> tail = new Node<T>(Integer.MAX_VALUE);
+    static int MAX_LEVEL;
+    final Node<T> head;
+    final Node<T> tail;
     
-    public SkipList()
+    public SkipList(int maxLevel)
     {
+        MAX_LEVEL = maxLevel;
+        head = new Node<T>(Integer.MIN_VALUE);
+        tail = new Node<T>(Integer.MAX_VALUE);
         for ( int i = 0; i < head.next.length; i++ )
         {
             head.next[i] = new AtomicMarkableReference<SkipList.Node<T>>(tail, false);
@@ -53,14 +56,14 @@ public class SkipList<T>
     static int RandomLevel()
     {
         int height = 0;
-        while ( height <= MAX_LEVEL && ThreadLocalRandom.current().nextInt(0, 2) == 1 )
+        while ( height < MAX_LEVEL && ThreadLocalRandom.current().nextInt(0, 2) == 1 )
         {
             height++;
         }
         return height;
     }
     
-    boolean Add ( int key, T value) {
+    public boolean Add ( int key, T value) {
         int topLevel = RandomLevel();
         int bottomLevel = 0;
         Node<T>[] preds = new Node[MAX_LEVEL + 1];
@@ -103,7 +106,7 @@ public class SkipList<T>
         }
     }
     
-    boolean Remove ( int key )
+    public boolean Remove ( int key )
     {
         int bottomLevel = 0;
         Node<T>[] preds = new Node[MAX_LEVEL + 1];
@@ -158,7 +161,7 @@ public class SkipList<T>
             while ( true )
             {
                 pred = head;
-                for ( int level = MAX_LEVEL; level >= bottomLevel; level -- )
+                for ( int level = MAX_LEVEL; level >= bottomLevel; level-- )
                 {
                     curr = pred.next[level].getReference();
                     while ( true )
@@ -191,7 +194,7 @@ public class SkipList<T>
             }
     }
     
-    boolean Contains ( int key )
+    public boolean Contains ( int key )
     {
         int bottomLevel = 0;
         boolean[] marked = {false};
