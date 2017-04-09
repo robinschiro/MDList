@@ -3,6 +3,7 @@ package DataStructureTestSuite;
 import static org.junit.Assert.*;
 
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicStampedReference;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -16,12 +17,12 @@ public class UtilitiesTests
 {
     private static final int DIMENSIONS = 3;
     private static final int BASE = 4;
-//    private static MDList<Integer> testList;
+    // private static MDList<Integer> testList;
 
     @BeforeClass
     public static void setUpBeforeClass () throws Exception
     {
-//        testList = new MDList<>(DIMENSIONS, KEY_SPACE);
+        // testList = new MDList<>(DIMENSIONS, KEY_SPACE);
     }
 
     @AfterClass
@@ -40,31 +41,34 @@ public class UtilitiesTests
     }
 
     @Test
-    public void testSetMark ()
+    public void testSetAndGetMark ()
     {
-        fail("Not yet implemented");
+        Object testObject = new Object();
+        AtomicStampedReference<Object> testAsr = new AtomicStampedReference<>(testObject, 0);
+        MDList.SetMark(testAsr, MDList.Fadp);
+
+        assert(MDList.IsMarked(testAsr, MDList.Fadp));
+        assert(!MDList.IsMarked(testAsr, MDList.Fdel));
     }
 
     @Test
-    public void testClearMark ()
+    public void testClearAndGetMark ()
     {
-        fail("Not yet implemented");
-    }
+        Object testObject = new Object();
+        AtomicStampedReference<Object> testAsr = new AtomicStampedReference<>(testObject, 0xFFFFFFFF);
+        MDList.ClearMark(testAsr, MDList.Fall);
 
-    @Test
-    public void testIsMarked ()
-    {
-        fail("Not yet implemented");
+        assert(!MDList.IsMarked(testAsr, MDList.Fall));
     }
 
     @Test
     public void testKeyToCoord ()
     {
-        int[] expectedOutput = {1, 2, 3};
+        int[] expectedOutput = { 1, 2, 3 };
         int key = 27;
         int[] actualOutput = MDList.KeyToCoord(key, BASE, DIMENSIONS);
 
-        assertTrue(Arrays.equals(expectedOutput, actualOutput));
+        assert(Arrays.equals(expectedOutput, actualOutput));
     }
 
 }

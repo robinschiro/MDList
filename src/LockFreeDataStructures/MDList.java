@@ -43,9 +43,9 @@ public class MDList<T>
         }
     }
 
-    private static final int Fadp = 0x1;
-    private static final int Fdel = 0x2;
-    private static final int Fall = 0x3;
+    public static final int Fadp = 0x1;
+    public static final int Fdel = 0x2;
+    public static final int Fall = 0x3;
 
     private int dimensions;
     private int keySpace;
