@@ -295,18 +295,18 @@ public class MDList<T>
     {
         AtomicStampedReference<Node<T>> currAsr, predAsr, childAsr, markedAsr;
         AtomicStampedReference[] predAndCurrAsr = new AtomicStampedReference[2];
+        Node[] predAndCurr = new Node[2];
         int[] dimOfPred = { 0 }, dimOfCurr = { 0 };
 
         while ( true )
         {
             // Start at the head with the two references
-            predAsr = null;
-            currAsr = head;
-            predAndCurrAsr[PRED_INDEX] = predAsr;
-            predAndCurrAsr[CURR_INDEX] = currAsr;
+            predAndCurrAsr[PRED_INDEX] = null;
+            predAndCurrAsr[CURR_INDEX] = head;
             // Find the predecessor using LocatePred and the mapped key
             LocatePred(KeyToCoord(key, base, dimensions), predAndCurrAsr, dimOfPred, dimOfCurr);
-
+            predAsr = predAndCurrAsr[PRED_INDEX];
+            currAsr = predAndCurrAsr[CURR_INDEX];
             // If we failed to locate the key to delete
             if ( dimOfCurr[0] != dimensions )
             {
