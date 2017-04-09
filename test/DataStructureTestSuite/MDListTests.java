@@ -49,9 +49,56 @@ public class MDListTests
     }
 
     @Test
-    public void testDelete ()
+    public void testInsertMany ()
     {
-        fail("Not yet implemented");
+        // Add some nodes to the list.
+        testList.Insert(1, 1);
+        testList.Insert(2, 2);
+        testList.Insert(3, 3);
     }
 
+    @Test
+    // Insert a node and then remove it.
+    public void testValidDelete ()
+    {
+        // Sample data.
+        int key = 5;
+        int expectedValue = 6;
+
+        // Insert node.
+        testList.Insert(key, expectedValue);
+
+        // Delete the node.
+        Integer actualValue = testList.Delete(key);
+
+        // Verify success.
+        assert(actualValue == expectedValue);
+
+        // Verify that node is no longer in list.
+        assert(null == testList.Find(key));
+    }
+
+    @Test
+    // Attempt to delete a node that we know is not in the list.
+    public void testInvalidDelete()
+    {
+        int key = 1;
+
+        // Delete the node.
+        Integer actualValue = testList.Delete(key);
+
+        assert(null == actualValue);
+    }
+
+    @Test
+    public void testPrint ()
+    {
+        // Add some nodes to the list.
+        testList.Insert(1, 10);
+        testList.Insert(2, 20);
+        testList.Insert(3, 30);
+
+        // Print the list.
+        testList.PrintList();
+    }
 }

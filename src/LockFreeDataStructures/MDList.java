@@ -169,7 +169,12 @@ public class MDList<T>
         adopterAsr.getReference().adoptDesc.compareAndSet(adoptDesc, null);
     }
 
-    public void PrintList(AtomicStampedReference<Node<Integer>> node)
+    public void PrintList()
+    {
+        PrintListHelper(head);
+    }
+
+    private void PrintListHelper(AtomicStampedReference<Node<T>> node)
     {
         for ( int dim = 0; dim < dimensions; dim++)
         {
@@ -182,7 +187,7 @@ public class MDList<T>
                 }
                 System.out.println(") -- " + node.getReference().value);
 
-                PrintList(node.getReference().children[dim]);
+                PrintListHelper(node.getReference().children[dim]);
             }
         }
     }
@@ -280,7 +285,8 @@ public class MDList<T>
             // we set the new node's child in the curr dim to curr.
             if ( dimOfCurr[0] < dimensions )
             {
-                nodeAsr.getReference().children[dimOfCurr[0]] = currAsr;
+                nodeAsr.getReference().children[dimOfCurr[0]].set(currAsr.getReference(), currAsr.getStamp());
+//                currAsr = new AtomicStampedReference(new Node<>(7, 8), 0);
             }
             nodeAsr.getReference().adoptDesc.set(adesc);
             // FillNewNode done
