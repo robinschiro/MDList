@@ -253,7 +253,7 @@ public class MDList<T>
             {
                 FinishInserting(currAsr, adesc);
             }
-            // If the predecessor node is marked, do something weird
+            // If the predecessor node's child in its dimension is marked, do something weird
             if ( IsMarked(predAsr.getReference().children.get(dimOfPred[0]), Fdel) )
             {
                 currAsr = SetMark(currAsr, Fdel);
@@ -265,8 +265,7 @@ public class MDList<T>
 
             // FillNewNode start
             adesc = null;
-            // If the dimension of the predecessor and current nodes isn't the same, we need an adotion
-            // descriptor
+            // If the dimension of the predecessor and current nodes isn't the same, we need an adoption descriptor
             if ( dimOfPred[0] != dimOfCurr[0] )
             {
                 adesc = new AdoptionDescriptor<>(currAsr, dimOfPred[0], dimOfCurr[0]);
@@ -279,7 +278,7 @@ public class MDList<T>
             // All the children with dimension of or greater than the pred get marked null
             for ( int dim = dimOfPred[0]; dim < dimensions; dim++ )
             {
-                nodeAsr.getReference().children.set(dim, null);
+                nodeAsr.getReference().children.set(dim, new AtomicStampedReference<>(null, 0));
             }
             // If the pred node's child in the dimension of the pred wasn't marked,
             // we set the new node's child in the curr dim to curr.
@@ -348,6 +347,24 @@ public class MDList<T>
                 {
                     return null;
                 }
+            }
+        }
+    }
+    
+    public void PrintList(AtomicStampedReference<Node<Integer>> node)
+    {
+        for ( int dim = 0; dim < dimensions; dim++)
+        {
+            if ( node.getReference() != null )
+            {
+                System.out.print(node.getReference().key + " -- (");
+                for ( int num : node.getReference().mappedKey )
+                {
+                    System.out.print(node.getReference().mappedKey[num] + ", ");
+                }
+                System.out.println(") -- " + node.getReference().value);
+                
+                PrintList(node.getReference().children.get(dim));
             }
         }
     }
