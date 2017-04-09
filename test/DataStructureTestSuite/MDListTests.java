@@ -97,8 +97,20 @@ public class MDListTests
         testList.Insert(1, 10);
         testList.Insert(2, 20);
         testList.Insert(3, 30);
-
+        testList.Insert(4, 40);
+        testList.Insert(10, 100);
+        testList.Insert(11, 110);
+        testList.Insert(12, 120);
+        testList.Insert(13, 130);
         // Print the list.
+        testList.PrintList();
+        // Add more nodes to the list.
+        testList.Insert(5, 50);
+        testList.Insert(6, 60);
+        testList.Insert(7, 70);
+        testList.Insert(8, 80);
+        testList.Insert(9, 90);
+        // Print the list again.
         testList.PrintList();
     }
 }

@@ -82,7 +82,7 @@ public class MDList<T>
     {
         this.dimensions = dimensions;
         this.keySpace = keySpace;
-        this.base = (int) Math.pow(keySpace, 1.0 / dimensions);
+        this.base = (int) Math.round(Math.pow(keySpace, 1.0 / dimensions));
         this.head = new AtomicStampedReference<>(new Node(0, null), 0);
     }
 
@@ -171,23 +171,27 @@ public class MDList<T>
 
     public void PrintList()
     {
+        System.out.println("Dimensions: " + dimensions);
+        System.out.println("Base: " + base);
+        System.out.println("KeySpace: " + keySpace);
         PrintListHelper(head);
     }
 
     private void PrintListHelper(AtomicStampedReference<Node<T>> node)
     {
-        for ( int dim = 0; dim < dimensions; dim++)
+        Node<T> reference = node.getReference();
+        if ( reference != null )
         {
-            if ( node.getReference() != null )
+            System.out.print(reference.key + " -- (");
+            for ( int num = 0; num < dimensions - 1; num++ )
             {
-                System.out.print(node.getReference().key + " -- (");
-                for ( int num : node.getReference().mappedKey )
-                {
-                    System.out.print(node.getReference().mappedKey[num] + ", ");
-                }
-                System.out.println(") -- " + node.getReference().value);
-
-                PrintListHelper(node.getReference().children[dim]);
+                System.out.print(reference.mappedKey[num] + ", ");
+            }
+            System.out.println(reference.mappedKey[dimensions - 1] + ") -- " + reference.value);
+            
+            for ( int dim = dimensions - 1; dim >= 0; dim--)
+            {
+                PrintListHelper(reference.children[dim]);
             }
         }
     }
