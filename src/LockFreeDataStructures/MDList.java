@@ -16,27 +16,27 @@ public class MDList<T>
         private int key;
         private int[] mappedKey;
         private V value;
-        private ArrayList<AtomicStampedReference<Node<V>>> children;
+        private AtomicStampedReference[] children;
         private AtomicReference<AdoptionDescriptor> adoptDesc;
 
         public Node( int key, V value )
         {
             this.key = key;
             this.value = value;
-            this.children = new ArrayList<>(dimensions);
+            this.children = new AtomicStampedReference[dimensions];
 
             // Generate mapped key
             mappedKey = KeyToCoord(key, MDList.this.base, MDList.this.dimensions);
         }
     }
 
-    class AdoptionDescriptor<V>
+    class AdoptionDescriptor
     {
-        AtomicStampedReference<Node<V>> current;
+        Node current;
         int dimOfPred;
         int dimOfCurr;
 
-        public AdoptionDescriptor( AtomicStampedReference<Node<V>> current, int dimOfPred, int dimOfCurr )
+        public AdoptionDescriptor( Node current, int dimOfPred, int dimOfCurr )
         {
             this.current = current;
             this.dimOfPred = dimOfPred;
@@ -50,62 +50,39 @@ public class MDList<T>
     public static final int StampInc = 0x4; // Increment Stamp by 0100 so it doesn't mess with flags
 
     private int dimensions;
+    public int getDimensions ()
+    {
+        return dimensions;
+    }
+
     private int keySpace;
+    public int getKeySpace ()
+    {
+        return keySpace;
+    }
 
     // Needed to convert key to set of coordinates in the MDList.
     // Calculate upon construction.
     private int base;
+    public int getBase ()
+    {
+        return base;
+    }
 
     // The head of the list.
-    public AtomicStampedReference<Node<T>> head;
+    private AtomicStampedReference<Node<T>> head;
 
+    // Constructor
     public MDList( int dimensions, int keySpace )
     {
         this.dimensions = dimensions;
         this.keySpace = keySpace;
-        this.base = (int) Math.pow(keySpace, 1 / dimensions);
+        this.base = (int) Math.pow(keySpace, 1.0 / dimensions);
         this.head = new AtomicStampedReference<>(new Node(0, null), 0);
     }
 
+
     /** Utilities **/
-
-    public static AtomicStampedReference SetMark ( AtomicStampedReference asr, int mark )
-    {
-        if ( asr != null )
-        {
-            int[] stampHolder = { 0 };
-            Object pointer = asr.get(stampHolder);
-            stampHolder[0] = stampHolder[0] | mark;
-            asr.attemptStamp(pointer, stampHolder[0]);
-        }
-        return asr;
-    }
-
-    public static AtomicStampedReference ClearMark ( AtomicStampedReference asr, int mark )
-    {
-        if ( asr != null )
-        {
-            int[] stampHolder = { 0 };
-            Object pointer = asr.get(stampHolder);
-            stampHolder[0] = stampHolder[0] & ~mark;
-            asr.attemptStamp(pointer, stampHolder[0]);
-        }
-        return asr;
-    }
-
-    // Check if the specified bit (or bits) of the stamp are marked.
-    // Return false if the node is null.
-    public static boolean IsMarked ( AtomicStampedReference asr, int mark )
-    {
-        if ( asr != null )
-        {
-            int stamp = asr.getStamp();
-            stamp = 0x3 & stamp;
-            stamp = stamp & mark;
-            return ( stamp == mark );
-        }
-        return false;
-    }
 
     public static int[] KeyToCoord ( int key, int base, int dimensions )
     {
@@ -121,23 +98,95 @@ public class MDList<T>
         return mappedKey;
     }
 
-    // Determine if the node that is inside the AtomicStampedReference is null.
-    private boolean IsRefNull ( AtomicStampedReference<Node<T>> nodeAsr )
+
+    /** Helper methods **/
+
+    private void LocatePred ( int[] mappedKey, ArrayList<AtomicStampedReference<Node<T>>> predAndCurrAsr, int[] dimOfPred, int[] dimOfCurr )
     {
-        if ( null != nodeAsr )
+        AtomicStampedReference<Node<T>> predAsr = predAndCurrAsr.get(PRED_INDEX);
+        AtomicStampedReference<Node<T>> currAsr = predAndCurrAsr.get(CURR_INDEX);
+
+        while ( dimOfCurr[0] < dimensions )
         {
-            return null == nodeAsr.getReference();
+            while ( !ReferenceUtilities.IsRefNull(currAsr) && mappedKey[dimOfCurr[0]] > currAsr.getReference().mappedKey[dimOfCurr[0]] )
+            {
+                predAsr = currAsr;
+                dimOfPred[0] = dimOfCurr[0];
+                AdoptionDescriptor adesc = currAsr.getReference().adoptDesc.get();
+
+                if ( adesc != null && dimOfPred[0] >= adesc.dimOfPred && dimOfPred[0] <= adesc.dimOfCurr )
+                {
+                    FinishInserting(currAsr, adesc);
+                }
+
+                currAsr = ReferenceUtilities.ClearMark(currAsr.getReference().children[dimOfCurr[0]], Fall);
+            }
+            if ( ReferenceUtilities.IsRefNull(currAsr) || mappedKey[dimOfCurr[0]] < currAsr.getReference().mappedKey[dimOfCurr[0]] )
+            {
+                break;
+            }
+            else
+            {
+                dimOfCurr[0]++;
+            }
         }
-        throw new RuntimeException("The AtomicStampedReference is null. This should not happen");
+
+        predAndCurrAsr.set(PRED_INDEX, predAsr);
+        predAndCurrAsr.set(CURR_INDEX, currAsr);
     }
 
-    private AtomicStampedReference CloneAsr ( AtomicStampedReference asrToClone )
+    private void FinishInserting ( AtomicStampedReference<Node<T>> adopterAsr, AdoptionDescriptor adoptDesc )
     {
-        return new AtomicStampedReference(asrToClone.getReference(), asrToClone.getStamp());
+        // Read in values from adoption context.
+        Node donorAsr = adoptDesc.current;
+        int dimOfPred = adoptDesc.dimOfPred;
+        int dimOfCurr = adoptDesc.dimOfCurr;
+
+        // Iterate through the children of the node whose children are being adopted (the "adoptee").
+        for ( int i = dimOfPred; i < dimOfCurr; i++ )
+        {
+            // Retrieve the child of the adoptee.
+            AtomicStampedReference<Node<T>> childAsr = donorAsr.children[i];
+
+            // Set the adoption flag in order to prevent insert operations from modifying this node while it's being adopted.
+            ReferenceUtilities.SetMark(childAsr, Fadp);
+
+            // Get the atomic reference wrapping the child of the adopter. Only fill it if it is empty.
+            AtomicStampedReference<Node<T>> adopterChildAsr = adopterAsr.getReference().children[i];
+            if ( null == adopterChildAsr.getReference() )
+            {
+                int expectedStamp = adopterChildAsr.getStamp();
+                adopterChildAsr.compareAndSet(null, childAsr.getReference(), expectedStamp, (expectedStamp + StampInc) | Fadp );
+            }
+        }
+
+        // Nullify the adoption descriptor for the adopter now that it has finished adopting its children.
+        adopterAsr.getReference().adoptDesc.compareAndSet(adoptDesc, null);
     }
+
+    public void PrintList(AtomicStampedReference<Node<Integer>> node)
+    {
+        for ( int dim = 0; dim < dimensions; dim++)
+        {
+            if ( node.getReference() != null )
+            {
+                System.out.print(node.getReference().key + " -- (");
+                for ( int num : node.getReference().mappedKey )
+                {
+                    System.out.print(node.getReference().mappedKey[num] + ", ");
+                }
+                System.out.println(") -- " + node.getReference().value);
+
+                PrintList(node.getReference().children[dim]);
+            }
+        }
+    }
+
+
+    /** Abstract Dictionary Implementation **/
 
     // Given a key, find the associated value if a node with the key exists in the MDList.
-    private T Find ( int key )
+    public T Find ( int key )
     {
         // Create an arraylist in order to pass the pred and curr atomic references by reference.
         ArrayList<AtomicStampedReference<Node<T>>> predAndCurrAsr = new ArrayList<>(2);
@@ -158,76 +207,14 @@ public class MDList<T>
         return null;
     }
 
-    private void LocatePred ( int[] mappedKey, ArrayList<AtomicStampedReference<Node<T>>> predAndCurrAsr, int[] dimOfPred, int[] dimOfCurr )
-    {
-        AtomicStampedReference<Node<T>> predAsr = predAndCurrAsr.get(PRED_INDEX);
-        AtomicStampedReference<Node<T>> currAsr = predAndCurrAsr.get(CURR_INDEX);
 
-        while ( dimOfCurr[0] < dimensions )
-        {
-            while ( !IsRefNull(currAsr) && mappedKey[dimOfCurr[0]] > currAsr.getReference().mappedKey[dimOfCurr[0]] )
-            {
-                predAsr = currAsr;
-                dimOfPred[0] = dimOfCurr[0];
-                AdoptionDescriptor<T> adesc = currAsr.getReference().adoptDesc.get();
-
-                if ( adesc != null && dimOfPred[0] >= adesc.dimOfPred && dimOfPred[0] <= adesc.dimOfCurr )
-                {
-                    FinishInserting(currAsr, adesc);
-                }
-
-                currAsr = ClearMark(currAsr.getReference().children.get(dimOfCurr[0]), Fall);
-            }
-            if ( IsRefNull(currAsr) || mappedKey[dimOfCurr[0]] < currAsr.getReference().mappedKey[dimOfCurr[0]] )
-            {
-                break;
-            }
-            else
-            {
-                dimOfCurr[0]++;
-            }
-        }
-
-        predAndCurrAsr.set(PRED_INDEX, predAsr);
-        predAndCurrAsr.set(CURR_INDEX, currAsr);
-    }
-
-    private void FinishInserting ( AtomicStampedReference<Node<T>> adopterAsr, AdoptionDescriptor<T> adoptDesc )
-    {
-        // Read in values from adoption context.
-        AtomicStampedReference<Node<T>> donorAsr = adoptDesc.current;
-        int dimOfPred = adoptDesc.dimOfPred;
-        int dimOfCurr = adoptDesc.dimOfCurr;
-
-        // Iterate through the children of the node whose children are being adopted (the "adoptee").
-        for ( int i = dimOfPred; i < dimOfCurr; i++ )
-        {
-            // Retrieve the child of the adoptee.
-            AtomicStampedReference<Node<T>> childAsr = donorAsr.getReference().children.get(i);
-
-            // Set the adoption flag in order to prevent insert operations from modifying this node while it's being adopted.
-            SetMark(childAsr, Fadp);
-
-            // Get the atomic reference wrapping the child of the adopter. Only fill it if it is empty.
-            AtomicStampedReference<Node<T>> adopterChildAsr = adopterAsr.getReference().children.get(i);
-            if ( null == adopterChildAsr.getReference() )
-            {
-                int expectedStamp = adopterChildAsr.getStamp();
-                adopterChildAsr.compareAndSet(null, childAsr.getReference(), expectedStamp, (expectedStamp + StampInc) | Fadp );
-            }
-        }
-
-        // Nullify the adoption descriptor for the adopter now that it has finished adopting its children.
-        adopterAsr.getReference().adoptDesc.compareAndSet(adoptDesc, null);
-    }
-
-    private void Insert ( int key, T value )
+    public void Insert ( int key, T value )
     {
         AtomicStampedReference<Node<T>> nodeAsr;
         AtomicStampedReference<Node<T>> predAsr, currAsr;
         ArrayList<AtomicStampedReference<Node<T>>> predAndCurrAsr = new ArrayList<>(2);
         int[] dimOfPred = { 0 }, dimOfCurr = { 0 };
-        AdoptionDescriptor<T> adesc;
+        AdoptionDescriptor adesc;
         nodeAsr = new AtomicStampedReference<>(new Node(key, value), 0);
 
         while ( true )
@@ -240,7 +227,7 @@ public class MDList<T>
             // Find the predecessor using LocatePred and the mapped key of the new node
             LocatePred(nodeAsr.getReference().mappedKey, predAndCurrAsr, dimOfPred, dimOfCurr);
             // If the we aren't at a leaf node, get the adoption descriptor
-            if ( !IsRefNull(currAsr) )
+            if ( !ReferenceUtilities.IsRefNull(currAsr) )
             {
                 adesc = currAsr.getReference().adoptDesc.get();
             }
@@ -254,9 +241,9 @@ public class MDList<T>
                 FinishInserting(currAsr, adesc);
             }
             // If the predecessor node's child in its dimension is marked, do something weird
-            if ( IsMarked(predAsr.getReference().children.get(dimOfPred[0]), Fdel) )
+            if ( ReferenceUtilities.IsMarked(predAsr.getReference().children[dimOfPred[0]], Fdel) )
             {
-                currAsr = SetMark(currAsr, Fdel);
+                currAsr = ReferenceUtilities.SetMark(currAsr, Fdel);
                 if ( dimOfCurr[0] == dimensions - 1 )
                 {
                     dimOfCurr[0] = dimensions;
@@ -268,23 +255,23 @@ public class MDList<T>
             // If the dimension of the predecessor and current nodes isn't the same, we need an adoption descriptor
             if ( dimOfPred[0] != dimOfCurr[0] )
             {
-                adesc = new AdoptionDescriptor<>(currAsr, dimOfPred[0], dimOfCurr[0]);
+                adesc = new AdoptionDescriptor(currAsr.getReference(), dimOfPred[0], dimOfCurr[0]);
             }
             // All the children of dimension less than the predecessor can exist so we make them
             for ( int dim = 0; dim < dimOfPred[0]; dim++ )
             {
-                nodeAsr.getReference().children.set(dim, new AtomicStampedReference<>(null, Fadp));
+                nodeAsr.getReference().children[dim] = new AtomicStampedReference(null, Fadp);
             }
             // All the children with dimension of or greater than the pred get marked null
             for ( int dim = dimOfPred[0]; dim < dimensions; dim++ )
             {
-                nodeAsr.getReference().children.set(dim, new AtomicStampedReference<>(null, 0));
+                nodeAsr.getReference().children[dim] = new AtomicStampedReference(null, 0);
             }
             // If the pred node's child in the dimension of the pred wasn't marked,
             // we set the new node's child in the curr dim to curr.
             if ( dimOfCurr[0] < dimensions )
             {
-                nodeAsr.getReference().children.set(dimOfCurr[0], currAsr);
+                nodeAsr.getReference().children[dimOfCurr[0]] = currAsr;
             }
             nodeAsr.getReference().adoptDesc.set(adesc);
             // FillNewNode done
@@ -295,7 +282,7 @@ public class MDList<T>
             // Increment the stamp
             nodeStamp += StampInc;
             // If CAS succeeds we try finish inserting and end, else we start over with the while loop
-            if ( predAsr.getReference().children.get(dimOfPred[0]).compareAndSet(currAsr.getReference(), nodeAsr.getReference(), currStamp, nodeStamp) )
+            if ( predAsr.getReference().children[dimOfPred[0]].compareAndSet(currAsr.getReference(), nodeAsr.getReference(), currStamp, nodeStamp) )
             {
                 if ( adesc != null )
                 {
@@ -306,7 +293,7 @@ public class MDList<T>
         }
     }
 
-    private T Delete ( int key )
+    public T Delete ( int key )
     {
         AtomicStampedReference<Node<T>> currAsr, predAsr, childAsr, markedAsr;
         ArrayList<AtomicStampedReference<Node<T>>> predAndCurrAsr = new ArrayList<>(2);
@@ -328,45 +315,26 @@ public class MDList<T>
                 return null;
             }
 
-            markedAsr = SetMark(currAsr, Fdel);
+            markedAsr = ReferenceUtilities.SetMark(currAsr, Fdel);
             // So CAS needs the stamps to be check too
             int currStamp = currAsr.getStamp();
             int markedStamp = markedAsr.getStamp();
             // Increment the stamp
             markedStamp += StampInc;
-            childAsr = predAsr.getReference().children.get(dimOfPred[0]);
-            predAsr.getReference().children.get(dimOfPred[0]).compareAndSet(currAsr.getReference(), markedAsr.getReference(), currStamp, markedStamp);
+            childAsr = predAsr.getReference().children[dimOfPred[0]];
+            predAsr.getReference().children[dimOfPred[0]].compareAndSet(currAsr.getReference(), markedAsr.getReference(), currStamp, markedStamp);
 
-            if ( ClearMark(childAsr, Fall) == currAsr )
+            if ( ReferenceUtilities.ClearMark(childAsr, Fall) == currAsr )
             {
-                if ( !IsMarked(childAsr, Fall) )
+                if ( !ReferenceUtilities.IsMarked(childAsr, Fall) )
                 {
                     return currAsr.getReference().value;
                 }
-                else if ( IsMarked(childAsr, Fdel) )
+                else if ( ReferenceUtilities.IsMarked(childAsr, Fdel) )
                 {
                     return null;
                 }
             }
         }
     }
-    
-    public void PrintList(AtomicStampedReference<Node<Integer>> node)
-    {
-        for ( int dim = 0; dim < dimensions; dim++)
-        {
-            if ( node.getReference() != null )
-            {
-                System.out.print(node.getReference().key + " -- (");
-                for ( int num : node.getReference().mappedKey )
-                {
-                    System.out.print(node.getReference().mappedKey[num] + ", ");
-                }
-                System.out.println(") -- " + node.getReference().value);
-                
-                PrintList(node.getReference().children.get(dim));
-            }
-        }
-    }
-
 }
