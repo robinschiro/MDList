@@ -82,7 +82,7 @@ public class MDList<T> implements ILockFreeDictionary<T>
     {
         this.dimensions = dimensions;
         this.keySpace = keySpace;
-        this.base = (int) Math.round(Math.pow(keySpace, 1.0 / dimensions));
+        this.base = (int) Math.ceil(Math.pow(keySpace, 1.0 / dimensions));
         this.head = new AtomicStampedReference<>(new Node(0, null), 0);
     }
 
@@ -109,9 +109,14 @@ public class MDList<T> implements ILockFreeDictionary<T>
         return (first.getReference() == second.getReference() && ((first.getStamp() & 0x3)  == (second.getStamp() & 0x3)));
     }
 
-    public void IsKeyValid ( int key )
+    public static boolean IsKeyValid ( int key, int keySpace )
     {
-        if ( key <= 0 || key >= keySpace )
+        return (key > 0 && key < keySpace);
+    }
+
+    public void CheckKeyValid ( int key )
+    {
+        if ( !IsKeyValid(key, keySpace) )
         {
             throw new IllegalArgumentException("Key out of bounds.");
         }
@@ -238,7 +243,7 @@ public class MDList<T> implements ILockFreeDictionary<T>
     @Override
     public T Find ( int key )
     {
-        IsKeyValid(key);
+        CheckKeyValid(key);
         // Create an arraylist in order to pass the pred and curr atomic references by reference.
         AtomicStampedReference<Node<T>>[] predAndCurrAsr = new AtomicStampedReference[2];
         // Create arrays for the ints to pass by reference.
@@ -263,7 +268,7 @@ public class MDList<T> implements ILockFreeDictionary<T>
     @Override
     public void Insert ( int key, T value )
     {
-        IsKeyValid(key);
+        CheckKeyValid(key);
         AtomicStampedReference<Node<T>> nodeAsr;
         AtomicStampedReference<Node<T>> predAsr, currAsr;
         AtomicStampedReference[] predAndCurrAsr = new AtomicStampedReference[2];
@@ -357,7 +362,7 @@ public class MDList<T> implements ILockFreeDictionary<T>
     @Override
     public T Delete ( int key )
     {
-        IsKeyValid(key);
+        CheckKeyValid(key);
         AtomicStampedReference<Node<T>> currAsr, predAsr, childAsr, markedAsr;
         AtomicStampedReference[] predAndCurrAsr = new AtomicStampedReference[2];
         int[] dimOfPred = { 0 }, dimOfCurr = { 0 };

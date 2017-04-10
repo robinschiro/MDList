@@ -1,4 +1,4 @@
-package DataStructureTestSuite;
+package DataStructureCorrectnessTests;
 
 import static org.junit.Assert.*;
 

@@ -1,4 +1,4 @@
-package DataStructureTestSuite;
+package DataStructurePerformanceTests;
 
 import static org.junit.Assert.*;
 
@@ -8,8 +8,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import DataStructureTestSuite.InstructionSetGenerator;
-import DataStructureTestSuite.InstructionSetGenerator.InstructionDescriptor;
+import DataStructurePerformanceTests.InstructionSetGenerator;
+import DataStructurePerformanceTests.InstructionSetGenerator.InstructionDescriptor;
+import LockFreeDataStructures.MDList;
 
 public class InstructionSetGeneratorTests
 {
@@ -37,7 +38,7 @@ public class InstructionSetGeneratorTests
     @Test
     public void testGenerateInstructionsValidArgs ()
     {
-        int numIns = 100;
+        int numIns = 1000;
         int keySpace = 10;
         InstructionDescriptor[] instructions = InstructionSetGenerator.GenerateInstructions(numIns, keySpace, 0.05, 0.05, 0.9);
 
@@ -47,7 +48,7 @@ public class InstructionSetGeneratorTests
         boolean keysAreValid = true;
         for ( InstructionDescriptor ins : instructions )
         {
-            assert(ins.getKey() < keySpace );
+            assert(MDList.IsKeyValid(ins.getKey(), keySpace));
         }
     }
 

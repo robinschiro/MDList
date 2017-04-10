@@ -1,4 +1,4 @@
-package DataStructureTestSuite;
+package DataStructurePerformanceTests;
 
 import java.util.Random;
 
@@ -117,7 +117,8 @@ public class InstructionSetGenerator
             }
 
             // Create desciptor with a random key and add to array.
-            instructions[i] = new InstructionDescriptor(insName, selector.nextInt(keySpace));
+            // Manipulate selected random arg to exclude 0.
+            instructions[i] = new InstructionDescriptor(insName, selector.nextInt(keySpace - 1) + 1);
         }
 
         return instructions;

@@ -1,22 +1,10 @@
-package DataStructureTestSuite;
+package DataStructurePerformanceTests;
 
-import static org.junit.Assert.*;
-
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import DataStructureTestSuite.InstructionSetGenerator.InstructionDescriptor;
+import DataStructurePerformanceTests.InstructionSetGenerator.InstructionDescriptor;
 import LockFreeDataStructures.ILockFreeDictionary;
-import LockFreeDataStructures.MDList;;
 
-public class PerformanceTests
+public class PerformanceTestUtilities
 {
-
-    private InstructionDescriptor[][] instructionSets;
-    private MDList<Integer> testList;
 
     public static void RunPerfomanceTest(ILockFreeDictionary dict, InstructionDescriptor[][] instructionSets  ) throws InterruptedException
     {
@@ -72,33 +60,15 @@ public class PerformanceTests
         }
     }
 
-    @BeforeClass
-    public static void setUpBeforeClass () throws Exception
+    public static InstructionDescriptor[][] GetSubsetOfInstructionSets ( int subsetSize, InstructionDescriptor[][] instructionSets )
     {
-    }
+        InstructionDescriptor[][] subset = new InstructionDescriptor[subsetSize][];
 
-    @AfterClass
-    public static void tearDownAfterClass () throws Exception
-    {
-    }
+        for ( int i = 0; i < subset.length; i++ )
+        {
+            subset[i] = instructionSets[i];
+        }
 
-    @Before
-    public void setUp () throws Exception
-    {
-        int keySpace = 1000;
-        testList = new MDList<>(20, keySpace);
-        instructionSets = InstructionSetGenerator.GenerateInstructionsForThreads(8, 1000, keySpace, .5, .5, 0);
+        return subset;
     }
-
-    @After
-    public void tearDown () throws Exception
-    {
-    }
-
-    @Test
-    public void test2Threads50Insert50DeleteMDList () throws InterruptedException
-    {
-        RunPerfomanceTest(testList, instructionSets);
-    }
-
 }
