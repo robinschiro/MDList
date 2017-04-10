@@ -169,4 +169,41 @@ public class MDListTests
         testList.Insert(4, 123);
         testList.PrintList();
     }
+    
+    @Test
+    public void testChildAdoption ()
+    {
+        testList.Insert(1, 11);
+        testList.Insert(2, 22);
+        testList.Insert(4, 44);
+        testList.Insert(5, 55);
+        testList.Insert(8, 88);
+        testList.Insert(18, 1818);
+        testList.Insert(19, 1919);
+        testList.Insert(22, 2222);
+        testList.Insert(33, 3333);
+        testList.Insert(34, 3434);
+        testList.Insert(36, 3636);
+        testList.Insert(40, 4040);
+        testList.Insert(48, 4848);
+        testList.Insert(49, 4949);
+        testList.Insert(51, 5151);
+        testList.PrintList();
+        testList.Insert(32, 3232);
+        testList.PrintList();
+        Integer test = testList.Find(48);
+        assert(test == 4848);
+        test = testList.Find(36);
+        assert(test == 3636);
+        testList.Delete(18);
+        test = testList.Find(18);
+        assert(test == null);
+        testList.PrintList();
+        testList.Insert(16, 1616);
+        testList.PrintList();
+        test = testList.Find(18);
+        assert(test == null);
+        test = testList.Find(16);
+        assert(test == 1616);
+    }
 }
