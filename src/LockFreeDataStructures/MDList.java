@@ -102,6 +102,12 @@ public class MDList<T>
 
         return mappedKey;
     }
+    
+    // Compares the reference and ONLY the flags, not the whole stamp
+    public boolean AreEqual ( AtomicStampedReference<Node<T>> first, AtomicStampedReference<Node<T>> second )
+    {
+        return (first.getReference() == second.getReference() && ((first.getStamp() & 0x3)  == (second.getStamp() & 0x3)));
+    }
 
 
     /** Helper methods **/
@@ -216,7 +222,7 @@ public class MDList<T>
     public T Find ( int key )
     {
         // Create an arraylist in order to pass the pred and curr atomic references by reference.
-        AtomicStampedReference[] predAndCurrAsr = new AtomicStampedReference[2];
+        AtomicStampedReference<Node<T>>[] predAndCurrAsr = new AtomicStampedReference[2];
         // Create arrays for the ints to pass by reference.
         int[] dimOfPred = { 0 };
         int[] dimOfCurr = { 0 };
@@ -228,7 +234,7 @@ public class MDList<T>
 
         // The find is successful if and only if dimOfCurr int matches the total number of dimensions.
         // We don't know how Find is supposed to skip logically deleted nodes so we are checking here manually.
-        if ( dimOfCurr[0] == dimensions && !ReferenceUtilities.IsMarked(predAndCurrAsr[CURR_INDEX], Fdel) )
+        if ( dimOfCurr[0] == dimensions && !ReferenceUtilities.IsMarked(predAndCurrAsr[PRED_INDEX].getReference().children[dimOfPred[0]], Fdel) )
         {
             return ((Node<T>)predAndCurrAsr[CURR_INDEX].getReference()).value;
         }
@@ -332,7 +338,6 @@ public class MDList<T>
     {
         AtomicStampedReference<Node<T>> currAsr, predAsr, childAsr, markedAsr;
         AtomicStampedReference[] predAndCurrAsr = new AtomicStampedReference[2];
-        Node[] predAndCurr = new Node[2];
         int[] dimOfPred = { 0 }, dimOfCurr = { 0 };
 
         while ( true )
@@ -353,14 +358,15 @@ public class MDList<T>
             markedAsr = ReferenceUtilities.SetMark(currAsr, Fdel);
             assert(ReferenceUtilities.IsMarked(markedAsr, Fdel));
             // So CAS needs the stamps to be check too
-            int currStamp = currAsr.getStamp();
+            //int currStamp = currAsr.getStamp();
             int markedStamp = markedAsr.getStamp();
             // Increment the stamp
             markedStamp += StampInc;
-            childAsr = predAsr.getReference().children[dimOfPred[0]];
-            predAsr.getReference().children[dimOfPred[0]].compareAndSet(currAsr.getReference(), markedAsr.getReference(), currStamp, markedStamp);
-
-            if ( ReferenceUtilities.ClearMark(childAsr, Fall) == currAsr )
+            childAsr = ReferenceUtilities.CloneAsr(predAsr.getReference().children[dimOfPred[0]]);
+            int childStamp = childAsr.getStamp();
+            predAsr.getReference().children[dimOfPred[0]].compareAndSet(childAsr.getReference(), markedAsr.getReference(),
+                                                                                          childStamp, markedStamp);
+            if ( AreEqual(ReferenceUtilities.ClearMark(childAsr, Fall), currAsr) )
             {
                 if ( !ReferenceUtilities.IsMarked(childAsr, Fall) )
                 {
