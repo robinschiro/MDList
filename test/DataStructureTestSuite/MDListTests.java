@@ -113,4 +113,21 @@ public class MDListTests
         // Print the list again.
         testList.PrintList();
     }
+    
+    @Test
+    public void testPrintDelete ()
+    {
+        testList.Insert(1, 10);
+        testList.Insert(2, 20);
+        testList.Insert(3, 30);
+        testList.Insert(4, 40);
+        testList.Insert(10, 100);
+        testList.Insert(11, 110);
+        testList.Insert(12, 120);
+        testList.Insert(13, 130);
+        testList.Delete(10);
+        testList.PrintList();
+        testList.Insert(8, 234);
+        testList.PrintList();
+    }
 }

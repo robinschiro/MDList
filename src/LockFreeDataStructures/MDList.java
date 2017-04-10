@@ -187,7 +187,7 @@ public class MDList<T>
             {
                 System.out.print(reference.mappedKey[num] + ", ");
             }
-            System.out.println(reference.mappedKey[dimensions - 1] + ") -- " + reference.value);
+            System.out.println(reference.mappedKey[dimensions - 1] + ") -- " + reference.value + (ReferenceUtilities.IsMarked(node, Fdel)?" Deleted":""));
             
             for ( int dim = dimensions - 1; dim >= startDim; dim--)
             {
