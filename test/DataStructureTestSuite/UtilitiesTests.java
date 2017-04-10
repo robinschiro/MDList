@@ -41,10 +41,10 @@ public class UtilitiesTests
     {
         Object testObject = new Object();
         AtomicStampedReference<Object> testAsr = new AtomicStampedReference<>(testObject, 0);
-        ReferenceUtilities.SetMark(testAsr, MDList.Fadp);
+        AtomicStampedReference<Object> marked = ReferenceUtilities.SetMark(testAsr, MDList.Fadp);
 
-        assert(ReferenceUtilities.IsMarked(testAsr, MDList.Fadp));
-        assert(!ReferenceUtilities.IsMarked(testAsr, MDList.Fdel));
+        assert(ReferenceUtilities.IsMarked(marked, MDList.Fadp));
+        assert(!ReferenceUtilities.IsMarked(marked, MDList.Fdel));
     }
 
     @Test
@@ -52,9 +52,9 @@ public class UtilitiesTests
     {
         Object testObject = new Object();
         AtomicStampedReference<Object> testAsr = new AtomicStampedReference<>(testObject, 0xFFFFFFFF);
-        ReferenceUtilities.ClearMark(testAsr, MDList.Fall);
+        AtomicStampedReference<Object> marked = ReferenceUtilities.ClearMark(testAsr, MDList.Fall);
 
-        assert(!ReferenceUtilities.IsMarked(testAsr, MDList.Fall));
+        assert(!ReferenceUtilities.IsMarked(marked, MDList.Fall));
     }
 
     @Test

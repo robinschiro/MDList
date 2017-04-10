@@ -35,7 +35,7 @@ public final class ReferenceUtilities
             Object pointer = asr.get(stampHolder);
             stampHolder[0] = stampHolder[0] & ~mark;
             asrClone.attemptStamp(pointer, stampHolder[0]);
-            return asr;
+            return asrClone;
         }
         throw new NullPointerException(NULL_ERROR_MESSAGE);
     }
