@@ -227,7 +227,8 @@ public class MDList<T>
         LocatePred(KeyToCoord(key, base, dimensions), predAndCurrAsr, dimOfPred, dimOfCurr);
 
         // The find is successful if and only if dimOfCurr int matches the total number of dimensions.
-        if ( dimOfCurr[0] == dimensions )
+        // We don't know how Find is supposed to skip logically deleted nodes so we are checking here manually.
+        if ( dimOfCurr[0] == dimensions && !ReferenceUtilities.IsMarked(predAndCurrAsr[CURR_INDEX], Fdel) )
         {
             return ((Node<T>)predAndCurrAsr[CURR_INDEX].getReference()).value;
         }
@@ -350,6 +351,7 @@ public class MDList<T>
             }
 
             markedAsr = ReferenceUtilities.SetMark(currAsr, Fdel);
+            assert(ReferenceUtilities.IsMarked(markedAsr, Fdel));
             // So CAS needs the stamps to be check too
             int currStamp = currAsr.getStamp();
             int markedStamp = markedAsr.getStamp();
