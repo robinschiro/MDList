@@ -3,7 +3,7 @@ package LockFreeDataStructures;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicMarkableReference;
 
-public class SkipList<T>
+public class SkipList<T> implements ILockFreeDictionary<T>
 {
     static int MAX_LEVEL;
     final Node<T> head;
@@ -53,7 +53,7 @@ public class SkipList<T>
         }
     }
 
-    static int RandomLevel()
+    private static int RandomLevel()
     {
         int height = 0;
         while ( height < MAX_LEVEL && ThreadLocalRandom.current().nextInt(0, 2) == 1 )
@@ -63,7 +63,8 @@ public class SkipList<T>
         return height;
     }
 
-    public boolean Add ( int key, T value) {
+    @Override
+    public void Insert ( int key, T value) {
         int topLevel = RandomLevel();
         int bottomLevel = 0;
         Node<T>[] preds = new Node[MAX_LEVEL + 1];
@@ -71,10 +72,10 @@ public class SkipList<T>
 
         while ( true )
         {
-            boolean found = Find(key, preds, succs);
+            boolean found = LocatePred(key, preds, succs);
             if ( found )
             {
-                return false;
+                return;
             }
             Node<T> newNode = new Node(key, value, topLevel);
             for ( int level = bottomLevel; level <= topLevel; level++ )
@@ -99,14 +100,15 @@ public class SkipList<T>
                     {
                         break;
                     }
-                    Find(key, preds, succs);
+                    LocatePred(key, preds, succs);
                 }
             }
-            return true;
+            return;
         }
     }
 
-    public boolean Remove ( int key )
+    @Override
+    public T Delete ( int key )
     {
         int bottomLevel = 0;
         Node<T>[] preds = new Node[MAX_LEVEL + 1];
@@ -115,10 +117,10 @@ public class SkipList<T>
 
         while ( true )
         {
-            boolean found = Find(key, preds, succs);
+            boolean found = LocatePred(key, preds, succs);
             if ( !found )
             {
-                return false;
+                return null;
             }
             Node<T> nodeToRemove = succs[bottomLevel];
             boolean[] marked = {false};
@@ -140,18 +142,18 @@ public class SkipList<T>
                 succ = succs[bottomLevel].next[bottomLevel].get(marked);
                 if ( iMarkedIt )
                 {
-                    Find(key, preds, succs);
-                    return true;
+                    LocatePred(key, preds, succs);
+                    return nodeToRemove.value;
                 }
                 else if ( marked[0] )
                 {
-                    return false;
+                    return null;
                 }
             }
         }
     }
 
-    private boolean Find ( int key, Node<T>[] preds, Node<T>[] succs )
+    private boolean LocatePred ( int key, Node<T>[] preds, Node<T>[] succs )
     {
         int bottomLevel = 0;
         boolean[] marked = {false};
@@ -194,7 +196,8 @@ public class SkipList<T>
             }
     }
 
-    public boolean Contains ( int key )
+    @Override
+    public T Find ( int key )
     {
         int bottomLevel = 0;
         boolean[] marked = {false};
@@ -221,7 +224,15 @@ public class SkipList<T>
                 }
             }
         }
-        return (curr.key == key);
+
+        if (curr.key == key)
+        {
+            return curr.value;
+        }
+        else
+        {
+            return null;
+        }
     }
 
 }

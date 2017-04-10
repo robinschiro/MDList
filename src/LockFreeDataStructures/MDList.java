@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicStampedReference;
 
-public class MDList<T>
+public class MDList<T> implements ILockFreeDictionary<T>
 {
     private static final int PRED_INDEX = 0;
     private static final int CURR_INDEX = 1;
@@ -235,6 +235,7 @@ public class MDList<T>
     /** Abstract Dictionary Implementation **/
 
     // Given a key, find the associated value if a node with the key exists in the MDList.
+    @Override
     public T Find ( int key )
     {
         IsKeyValid(key);
@@ -259,6 +260,7 @@ public class MDList<T>
     }
 
 
+    @Override
     public void Insert ( int key, T value )
     {
         IsKeyValid(key);
@@ -352,6 +354,7 @@ public class MDList<T>
         }
     }
 
+    @Override
     public T Delete ( int key )
     {
         IsKeyValid(key);

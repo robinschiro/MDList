@@ -14,11 +14,11 @@ public class SkipListTests
 {
     private static final int MAX_LEVEL = 5;
     private static SkipList<Integer> testList;
-    
+
     @BeforeClass
     public static void setUpBeforeClass() throws Exception
     {
-        
+
     }
 
     @AfterClass
@@ -36,50 +36,45 @@ public class SkipListTests
     public void tearDown() throws Exception
     {
     }
-    
+
     @Test
-    public void testInsertAndContainsTrue ()
+    public void testInsertAndFindSuccess ()
     {
-        boolean test = testList.Add(7, 14);
-        assert(test == true);
-        test = testList.Contains(7);
-        assert(test == true);
-    }
-    
-    @Test
-    public void testInsertAndContainsFalse ()
-    {
-        boolean test = testList.Add(7, 14);
-        assert(test == true);
-        test = testList.Add(3, 45);
-        assert(test == true);
-        test = testList.Add(72, 18);
-        assert(test == true);
-        test = testList.Contains(4);
-        assert(test == false);
-        test = testList.Contains(0);
-        assert(test == false);
-        test = testList.Contains(2);
-        assert(test == false);
-        test = testList.Contains(100);
-        assert(test == false);
-    }
-    
-    @Test
-    public void testInsertAndDeleteAndContains ()
-    {
-        boolean test = testList.Remove(1);
-        assert(test == false);
-        test = testList.Add(4, 83);
-        assert(test == true);
-        test = testList.Add(8, 123);
-        assert(test == true);
-        test = testList.Remove(9);
-        assert(test == false);
-        test = testList.Remove(4);
-        assert(test == true);
-        test = testList.Contains(4);
-        assert(test == false);
+        int testKey = 7;
+        int testValue = 14;
+        testList.Insert(testKey, testValue);
+        assert(testValue == testList.Find(testKey));
     }
 
+    @Test
+    public void testInsertAndFindFail ()
+    {
+        testList.Insert(7, 14);
+        testList.Insert(3, 45);
+        testList.Insert(72, 18);
+
+        Integer value = testList.Find(4);
+        assert(null == value);
+        value = testList.Find(0);
+        assert(null == value);
+        value = testList.Find(2);
+        assert(null == value);
+        value = testList.Find(100);
+        assert(null == value);
+    }
+
+    @Test
+    public void testInsertAndDeleteAndFind ()
+    {
+        Integer value = testList.Delete(1);
+        assert(null == value);
+        testList.Insert(4, 83);
+        testList.Insert(8, 123);
+        value = testList.Delete(9);
+        assert(null == value);
+        value = testList.Delete(4);
+        assert(83 == value);
+        value = testList.Find(4);
+        assert(null == value);
+    }
 }
