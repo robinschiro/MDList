@@ -174,10 +174,10 @@ public class MDList<T>
         System.out.println("Dimensions: " + dimensions);
         System.out.println("Base: " + base);
         System.out.println("KeySpace: " + keySpace);
-        PrintListHelper(head);
+        PrintListHelper(head, 0);
     }
 
-    private void PrintListHelper(AtomicStampedReference<Node<T>> node)
+    private void PrintListHelper(AtomicStampedReference<Node<T>> node, int startDim)
     {
         Node<T> reference = node.getReference();
         if ( reference != null )
@@ -189,9 +189,9 @@ public class MDList<T>
             }
             System.out.println(reference.mappedKey[dimensions - 1] + ") -- " + reference.value);
             
-            for ( int dim = dimensions - 1; dim >= 0; dim--)
+            for ( int dim = dimensions - 1; dim >= startDim; dim--)
             {
-                PrintListHelper(reference.children[dim]);
+                PrintListHelper(reference.children[dim], 0);
             }
         }
     }
