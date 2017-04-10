@@ -168,11 +168,16 @@ public class MDList<T>
             AtomicStampedReference donorChildAsr = donor.children[i];
 
             // Set the adoption flag in order to prevent insert operations from modifying this node while it's being adopted.
-            // Perhaps use a while (true) to guarantee success.
-            int originalStamp = donorChildAsr.getStamp();
-            AtomicStampedReference donorChildAsrClone = ReferenceUtilities.SetMark(donorChildAsr, Fadp);
-            donorChildAsr.compareAndSet(donorChildAsrClone.getReference(), donorChildAsrClone.getReference(),
-                                        originalStamp, donorChildAsrClone.getStamp() + StampInc);
+            // Continue retrying to guarantee success.
+            boolean fetchAndOrSucceeded = false;
+            int originalStamp;
+            while (!fetchAndOrSucceeded)
+            {
+                originalStamp = donorChildAsr.getStamp();
+                AtomicStampedReference donorChildAsrClone = ReferenceUtilities.SetMark(donorChildAsr, Fadp);
+                fetchAndOrSucceeded = donorChildAsr.compareAndSet(donorChildAsrClone.getReference(), donorChildAsrClone.getReference(),
+                                            originalStamp, donorChildAsrClone.getStamp() + StampInc);
+            }
 
             // Get the atomic reference wrapping the child of the adopter.
             AtomicStampedReference adopterChildAsr = adopter.children[i];
