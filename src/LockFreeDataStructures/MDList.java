@@ -109,6 +109,13 @@ public class MDList<T>
         return (first.getReference() == second.getReference() && ((first.getStamp() & 0x3)  == (second.getStamp() & 0x3)));
     }
 
+    public void IsKeyValid ( int key )
+    {
+        if ( key <= 0 || key >= keySpace )
+        {
+            throw new IllegalArgumentException("Key out of bounds.");
+        }
+    }
 
     /** Helper methods **/
 
@@ -225,6 +232,7 @@ public class MDList<T>
     // Given a key, find the associated value if a node with the key exists in the MDList.
     public T Find ( int key )
     {
+        IsKeyValid(key);
         // Create an arraylist in order to pass the pred and curr atomic references by reference.
         AtomicStampedReference<Node<T>>[] predAndCurrAsr = new AtomicStampedReference[2];
         // Create arrays for the ints to pass by reference.
@@ -248,6 +256,7 @@ public class MDList<T>
 
     public void Insert ( int key, T value )
     {
+        IsKeyValid(key);
         AtomicStampedReference<Node<T>> nodeAsr;
         AtomicStampedReference<Node<T>> predAsr, currAsr;
         AtomicStampedReference[] predAndCurrAsr = new AtomicStampedReference[2];
@@ -340,6 +349,7 @@ public class MDList<T>
 
     public T Delete ( int key )
     {
+        IsKeyValid(key);
         AtomicStampedReference<Node<T>> currAsr, predAsr, childAsr, markedAsr;
         AtomicStampedReference[] predAndCurrAsr = new AtomicStampedReference[2];
         int[] dimOfPred = { 0 }, dimOfCurr = { 0 };

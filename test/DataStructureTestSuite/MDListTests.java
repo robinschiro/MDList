@@ -56,6 +56,41 @@ public class MDListTests
         testList.Insert(2, 2);
         testList.Insert(3, 3);
     }
+    
+    @Test
+    public void testInvalidInput ()
+    {
+        // Add some invalid nodes to the list.
+        try {
+            testList.Insert(0, 1);
+            fail( "Did not throw exception 1." );
+        } catch (IllegalArgumentException expectedException) {
+        }
+        try {
+            testList.Insert(64, 3);
+            fail( "Did not throw exception 2." );
+        } catch (IllegalArgumentException expectedException) {
+        }
+        try {
+            testList.Insert(-2, 5);
+            fail( "Did not throw exception 3." );
+        } catch (IllegalArgumentException expectedException) {
+        }
+        try {
+            testList.Find(0);
+            fail( "Did not throw exception 3." );
+        } catch (IllegalArgumentException expectedException) {
+        }
+        try {
+            testList.Find(64);
+            fail( "Did not throw exception 3." );
+        } catch (IllegalArgumentException expectedException) {
+        }
+        testList.Insert(5, 234);
+        testList.PrintList();
+        Integer test = testList.Find(5);
+        assert(test == 234);
+    }
 
     @Test
     // Insert a node and then remove it.
@@ -121,14 +156,17 @@ public class MDListTests
         testList.Insert(1, 10);
         testList.Insert(2, 20);
         testList.Insert(3, 30);
-        testList.Insert(4, 40);
+        testList.Insert(5, 50);
         testList.Insert(10, 100);
         testList.Insert(11, 110);
         testList.Insert(12, 120);
         testList.Insert(13, 130);
         testList.Delete(10);
+        testList.Delete(5);
         testList.PrintList();
         testList.Insert(8, 234);
+        testList.PrintList();
+        testList.Insert(4, 123);
         testList.PrintList();
     }
 }
