@@ -8,27 +8,33 @@ public final class ReferenceUtilities
 {
     private static final String NULL_ERROR_MESSAGE = "The AtomicStampedReference is null.";
 
+    // Create a clone of the given atomic stamped reference and set a flag on the clone.
+    // Return the clone.
     public static AtomicStampedReference SetMark ( AtomicStampedReference asr, int mark )
     {
         if ( asr != null )
         {
+            AtomicStampedReference asrClone = CloneAsr(asr);
             int[] stampHolder = { 0 };
-            Object pointer = asr.get(stampHolder);
+            Object pointer = asrClone.get(stampHolder);
             stampHolder[0] = stampHolder[0] | mark;
-            asr.attemptStamp(pointer, stampHolder[0]);
-            return asr;
+            asrClone.attemptStamp(pointer, stampHolder[0]);
+            return asrClone;
         }
         throw new NullPointerException(NULL_ERROR_MESSAGE);
     }
 
+    // Create a clone of the given atomic stamped reference and clear the flags on it.
+    // Return the clone.
     public static AtomicStampedReference ClearMark ( AtomicStampedReference asr, int mark )
     {
         if ( asr != null )
         {
+            AtomicStampedReference asrClone = CloneAsr(asr);
             int[] stampHolder = { 0 };
             Object pointer = asr.get(stampHolder);
             stampHolder[0] = stampHolder[0] & ~mark;
-            asr.attemptStamp(pointer, stampHolder[0]);
+            asrClone.attemptStamp(pointer, stampHolder[0]);
             return asr;
         }
         throw new NullPointerException(NULL_ERROR_MESSAGE);

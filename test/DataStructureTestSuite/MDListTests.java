@@ -75,7 +75,8 @@ public class MDListTests
         assert(actualValue == expectedValue);
 
         // Verify that node is no longer in list.
-        assert(null == testList.Find(key));
+        actualValue = testList.Find(key);
+        assert(null == actualValue);
     }
 
     @Test

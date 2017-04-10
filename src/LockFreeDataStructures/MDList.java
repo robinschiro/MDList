@@ -140,28 +140,41 @@ public class MDList<T>
         predAndCurrAsr[CURR_INDEX] = currAsr;
     }
 
+    // Child adoption
     private void FinishInserting ( AtomicStampedReference<Node<T>> adopterAsr, AdoptionDescriptor adoptDesc )
     {
         // Read in values from adoption context.
-        Node donorAsr = adoptDesc.current;
+        Node donor = adoptDesc.current;
         int dimOfPred = adoptDesc.dimOfPred;
         int dimOfCurr = adoptDesc.dimOfCurr;
 
         // Iterate through the children of the node whose children are being adopted (the "adoptee").
         for ( int i = dimOfPred; i < dimOfCurr; i++ )
         {
-            // Retrieve the child of the adoptee.
-            AtomicStampedReference<Node<T>> childAsr = donorAsr.children[i];
+            // Retrieve the child of the donor.
+            AtomicStampedReference<Node<T>> donorChildAsr = donor.children[i];
 
             // Set the adoption flag in order to prevent insert operations from modifying this node while it's being adopted.
-            ReferenceUtilities.SetMark(childAsr, Fadp);
+            ReferenceUtilities.SetMark(donorChildAsr, Fadp);
 
-            // Get the atomic reference wrapping the child of the adopter. Only fill it if it is empty.
+            // Get the atomic reference wrapping the child of the adopter.
             AtomicStampedReference<Node<T>> adopterChildAsr = adopterAsr.getReference().children[i];
+
+            // Clear any remnant Fadp flag in the atomic reference.
+            ReferenceUtilities.ClearMark(adopterChildAsr, Fadp);
+
+            // Only fill the atomic reference if it is empty.
             if ( null == adopterChildAsr.getReference() )
             {
                 int expectedStamp = adopterChildAsr.getStamp();
-                adopterChildAsr.compareAndSet(null, childAsr.getReference(), expectedStamp, (expectedStamp + StampInc) | Fadp );
+                boolean success = adopterChildAsr.compareAndSet(null, donorChildAsr.getReference(), expectedStamp, (expectedStamp + StampInc));
+
+                // If the child was successfully adopted, remove the reference in the donor.
+                // This is done to prevent the existence of "zombie" connections.
+                if ( success )
+                {
+                    donorChildAsr.set(null, Fadp);
+                }
             }
         }
 
@@ -188,7 +201,7 @@ public class MDList<T>
                 System.out.print(reference.mappedKey[num] + ", ");
             }
             System.out.println(reference.mappedKey[dimensions - 1] + ") -- " + reference.value);
-            
+
             for ( int dim = dimensions - 1; dim >= startDim; dim--)
             {
                 PrintListHelper(reference.children[dim], 0);
