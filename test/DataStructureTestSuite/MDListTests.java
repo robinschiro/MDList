@@ -36,7 +36,7 @@ public class MDListTests
     }
 
     @Test
-    public void testInsertAndFind ()
+    public void testInsertOneAndFind ()
     {
         // Sample data.
         int key = 5;
@@ -114,7 +114,7 @@ public class MDListTests
         // Print the list again.
         testList.PrintList();
     }
-    
+
     @Test
     public void testPrintDelete ()
     {

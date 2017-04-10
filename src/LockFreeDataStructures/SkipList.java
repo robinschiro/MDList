@@ -8,25 +8,25 @@ public class SkipList<T>
     static int MAX_LEVEL;
     final Node<T> head;
     final Node<T> tail;
-    
+
     public SkipList(int maxLevel)
     {
         MAX_LEVEL = maxLevel;
-        head = new Node<T>(Integer.MIN_VALUE);
-        tail = new Node<T>(Integer.MAX_VALUE);
+        head = new Node<>(Integer.MIN_VALUE);
+        tail = new Node<>(Integer.MAX_VALUE);
         for ( int i = 0; i < head.next.length; i++ )
         {
-            head.next[i] = new AtomicMarkableReference<SkipList.Node<T>>(tail, false);
+            head.next[i] = new AtomicMarkableReference<>(tail, false);
         }
     }
-    
+
     public static final class Node<T>
     {
         final T value;
         final int key;
         final AtomicMarkableReference<SkipList.Node<T>>[] next;
         private int topLevel;
-        
+
         // Sentinel Node Constructor
         public Node(int key)
         {
@@ -35,7 +35,7 @@ public class SkipList<T>
             next = new AtomicMarkableReference[MAX_LEVEL + 1];
             for ( int i = 0; i < next.length; i++ )
             {
-                next[i] = new AtomicMarkableReference<Node<T>>(null, false);
+                next[i] = new AtomicMarkableReference<>(null, false);
             }
             topLevel = MAX_LEVEL;
         }
@@ -47,12 +47,12 @@ public class SkipList<T>
             next = new AtomicMarkableReference[height + 1];
             for ( int i = 0; i < next.length; i++ )
             {
-                next[i] = new AtomicMarkableReference<Node<T>>(null, false);
+                next[i] = new AtomicMarkableReference<>(null, false);
             }
             this.topLevel = height;
         }
     }
-    
+
     static int RandomLevel()
     {
         int height = 0;
@@ -62,13 +62,13 @@ public class SkipList<T>
         }
         return height;
     }
-    
+
     public boolean Add ( int key, T value) {
         int topLevel = RandomLevel();
         int bottomLevel = 0;
         Node<T>[] preds = new Node[MAX_LEVEL + 1];
         Node<T>[] succs = new Node[MAX_LEVEL + 1];
-        
+
         while ( true )
         {
             boolean found = Find(key, preds, succs);
@@ -105,14 +105,14 @@ public class SkipList<T>
             return true;
         }
     }
-    
+
     public boolean Remove ( int key )
     {
         int bottomLevel = 0;
         Node<T>[] preds = new Node[MAX_LEVEL + 1];
         Node<T>[] succs = new Node[MAX_LEVEL + 1];
         Node<T> succ;
-        
+
         while ( true )
         {
             boolean found = Find(key, preds, succs);
@@ -150,8 +150,8 @@ public class SkipList<T>
             }
         }
     }
-    
-    boolean Find ( int key, Node<T>[] preds, Node<T>[] succs )
+
+    private boolean Find ( int key, Node<T>[] preds, Node<T>[] succs )
     {
         int bottomLevel = 0;
         boolean[] marked = {false};
@@ -193,7 +193,7 @@ public class SkipList<T>
                 return (curr.key == key);
             }
     }
-    
+
     public boolean Contains ( int key )
     {
         int bottomLevel = 0;
@@ -223,5 +223,5 @@ public class SkipList<T>
         }
         return (curr.key == key);
     }
-    
+
 }

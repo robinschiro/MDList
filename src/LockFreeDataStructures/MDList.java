@@ -102,7 +102,7 @@ public class MDList<T>
 
         return mappedKey;
     }
-    
+
     // Compares the reference and ONLY the flags, not the whole stamp
     public boolean AreEqual ( AtomicStampedReference<Node<T>> first, AtomicStampedReference<Node<T>> second )
     {
@@ -127,7 +127,7 @@ public class MDList<T>
 
                 if ( adesc != null && dimOfPred[0] >= adesc.dimOfPred && dimOfPred[0] <= adesc.dimOfCurr )
                 {
-                    FinishInserting(currAsr, adesc);
+                    FinishInserting(currAsr.getReference(), adesc);
                 }
 
                 currAsr = ReferenceUtilities.ClearMark(currAsr.getReference().children[dimOfCurr[0]], Fall);
@@ -147,7 +147,7 @@ public class MDList<T>
     }
 
     // Child adoption
-    private void FinishInserting ( AtomicStampedReference<Node<T>> adopterAsr, AdoptionDescriptor adoptDesc )
+    private void FinishInserting ( Node adopter, AdoptionDescriptor adoptDesc )
     {
         // Read in values from adoption context.
         Node donor = adoptDesc.current;
@@ -158,13 +158,17 @@ public class MDList<T>
         for ( int i = dimOfPred; i < dimOfCurr; i++ )
         {
             // Retrieve the child of the donor.
-            AtomicStampedReference<Node<T>> donorChildAsr = donor.children[i];
+            AtomicStampedReference donorChildAsr = donor.children[i];
 
             // Set the adoption flag in order to prevent insert operations from modifying this node while it's being adopted.
-            ReferenceUtilities.SetMark(donorChildAsr, Fadp);
+            // Perhaps use a while (true) to guarantee success.
+            int originalStamp = donorChildAsr.getStamp();
+            AtomicStampedReference donorChildAsrClone = ReferenceUtilities.SetMark(donorChildAsr, Fadp);
+            donorChildAsr.compareAndSet(donorChildAsrClone.getReference(), donorChildAsrClone.getReference(),
+                                        originalStamp, donorChildAsrClone.getStamp() + StampInc);
 
             // Get the atomic reference wrapping the child of the adopter.
-            AtomicStampedReference<Node<T>> adopterChildAsr = adopterAsr.getReference().children[i];
+            AtomicStampedReference adopterChildAsr = adopter.children[i];
 
             // Clear any remnant Fadp flag in the atomic reference.
             ReferenceUtilities.ClearMark(adopterChildAsr, Fadp);
@@ -185,7 +189,7 @@ public class MDList<T>
         }
 
         // Nullify the adoption descriptor for the adopter now that it has finished adopting its children.
-        adopterAsr.getReference().adoptDesc.compareAndSet(adoptDesc, null);
+        adopter.adoptDesc.compareAndSet(adoptDesc, null);
     }
 
     public void PrintList()
@@ -236,7 +240,7 @@ public class MDList<T>
         // We don't know how Find is supposed to skip logically deleted nodes so we are checking here manually.
         if ( dimOfCurr[0] == dimensions && !ReferenceUtilities.IsMarked(predAndCurrAsr[PRED_INDEX].getReference().children[dimOfPred[0]], Fdel) )
         {
-            return ((Node<T>)predAndCurrAsr[CURR_INDEX].getReference()).value;
+            return predAndCurrAsr[CURR_INDEX].getReference().value;
         }
         return null;
     }
@@ -276,7 +280,7 @@ public class MDList<T>
             // If the adoption descriptor exists and the predecessor and current aren't in the same dimension
             if ( adesc != null && dimOfPred[0] != dimOfCurr[0] )
             {
-                FinishInserting(currAsr, adesc);
+                FinishInserting(currAsr.getReference(), adesc);
             }
 
             // If the predecessor node's child in its dimension is marked, do something weird
@@ -327,7 +331,7 @@ public class MDList<T>
             {
                 if ( adesc != null )
                 {
-                    FinishInserting(nodeAsr, adesc);
+                    FinishInserting(nodeAsr.getReference(), adesc);
                 }
                 break;
             }
