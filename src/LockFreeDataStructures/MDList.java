@@ -122,6 +122,39 @@ public class MDList<T> implements ILockFreeDictionary<T>
         }
     }
 
+    public static int CalculateDimensionsFromBase( int desiredBase, int keySpace )
+    {
+        return (int)Math.round(Math.log(keySpace) / Math.log(2));
+    }
+
+    public void PrintList()
+    {
+        System.out.println("Dimensions: " + dimensions);
+        System.out.println("Base: " + base);
+        System.out.println("KeySpace: " + keySpace);
+        PrintListHelper(head, 0);
+    }
+
+    private void PrintListHelper(AtomicStampedReference<Node<T>> node, int startDim)
+    {
+        Node<T> reference = node.getReference();
+        if ( reference != null )
+        {
+            System.out.print(reference.key + " -- (");
+            for ( int num = 0; num < dimensions - 1; num++ )
+            {
+                System.out.print(reference.mappedKey[num] + ", ");
+            }
+            System.out.println(reference.mappedKey[dimensions - 1] + ") -- " + reference.value + (ReferenceUtilities.IsMarked(node, Fdel)?" Deleted":""));
+
+            for ( int dim = dimensions - 1; dim >= startDim; dim--)
+            {
+                PrintListHelper(reference.children[dim], 0);
+            }
+        }
+    }
+
+
     /** Helper methods **/
 
     private void LocatePred ( int[] mappedKey, AtomicStampedReference[] predAndCurrAsr, int[] dimOfPred, int[] dimOfCurr )
@@ -172,68 +205,24 @@ public class MDList<T> implements ILockFreeDictionary<T>
             // Retrieve the child of the donor.
             AtomicStampedReference donorChildAsr = donor.children[i];
 
-            // Set the adoption flag in order to prevent insert operations from modifying this node while it's being adopted.
-            // Continue retrying to guarantee success.
-            boolean fetchAndOrSucceeded = false;
-            int originalStamp;
-            while (!fetchAndOrSucceeded)
-            {
-                originalStamp = donorChildAsr.getStamp();
-                AtomicStampedReference donorChildAsrClone = ReferenceUtilities.SetMark(donorChildAsr, Fadp);
-                fetchAndOrSucceeded = donorChildAsr.compareAndSet(donorChildAsrClone.getReference(), donorChildAsrClone.getReference(),
-                                            originalStamp, donorChildAsrClone.getStamp() + StampInc);
-            }
+            // Clear any remnant Fadp flag in the atomic reference
+            // so that this flag is not set when this child is given to the adopter.
+            AtomicStampedReference donorChildAsrClone = ReferenceUtilities.CloneAsr(donorChildAsr);
+            donorChildAsrClone = ReferenceUtilities.ClearMark(donorChildAsrClone, Fadp);
 
             // Get the atomic reference wrapping the child of the adopter.
             AtomicStampedReference adopterChildAsr = adopter.children[i];
 
-            // Clear any remnant Fadp flag in the atomic reference.
-            ReferenceUtilities.ClearMark(adopterChildAsr, Fadp);
-
             // Only fill the atomic reference if it is empty.
             if ( null == adopterChildAsr.getReference() )
             {
-                int expectedStamp = adopterChildAsr.getStamp();
-                boolean success = adopterChildAsr.compareAndSet(null, donorChildAsr.getReference(), expectedStamp, (expectedStamp + StampInc));
-
-                // If the child was successfully adopted, remove the reference in the donor.
-                // This is done to prevent the existence of "zombie" connections.
-                if ( success )
-                {
-                    donorChildAsr.set(null, Fadp);
-                }
+                int newStamp = donorChildAsrClone.getStamp() + StampInc;
+                adopterChildAsr.compareAndSet(null, donorChildAsrClone.getReference(), 0, newStamp);
             }
         }
 
         // Nullify the adoption descriptor for the adopter now that it has finished adopting its children.
         adopter.adoptDesc.compareAndSet(adoptDesc, null);
-    }
-
-    public void PrintList()
-    {
-        System.out.println("Dimensions: " + dimensions);
-        System.out.println("Base: " + base);
-        System.out.println("KeySpace: " + keySpace);
-        PrintListHelper(head, 0);
-    }
-
-    private void PrintListHelper(AtomicStampedReference<Node<T>> node, int startDim)
-    {
-        Node<T> reference = node.getReference();
-        if ( reference != null )
-        {
-            System.out.print(reference.key + " -- (");
-            for ( int num = 0; num < dimensions - 1; num++ )
-            {
-                System.out.print(reference.mappedKey[num] + ", ");
-            }
-            System.out.println(reference.mappedKey[dimensions - 1] + ") -- " + reference.value + (ReferenceUtilities.IsMarked(node, Fdel)?" Deleted":""));
-
-            for ( int dim = dimensions - 1; dim >= startDim; dim--)
-            {
-                PrintListHelper(reference.children[dim], 0);
-            }
-        }
     }
 
 
@@ -278,6 +267,10 @@ public class MDList<T> implements ILockFreeDictionary<T>
 
         while ( true )
         {
+            // Reset dimensions of pred and curr.
+            dimOfPred[0] = 0;
+            dimOfCurr[0] = 0;
+
             // Start at the head with the two references
             predAndCurrAsr[PRED_INDEX] = null;
             predAndCurrAsr[CURR_INDEX] = head;
@@ -327,7 +320,7 @@ public class MDList<T> implements ILockFreeDictionary<T>
             // All remaining positions are valid.
             for ( int dim = 0; dim < dimOfPred[0]; dim++ )
             {
-                ReferenceUtilities.SetMark(nodeAsr.getReference().children[dim], Fadp);
+                nodeAsr.getReference().children[dim].set(null, Fadp);
             }
 
             // If the pred node's child in the dimension of the pred wasn't marked,
@@ -335,7 +328,6 @@ public class MDList<T> implements ILockFreeDictionary<T>
             if ( dimOfCurr[0] < dimensions )
             {
                 nodeAsr.getReference().children[dimOfCurr[0]].set(currAsr.getReference(), currAsr.getStamp());
-//                currAsr = new AtomicStampedReference(new Node<>(7, 8), 0);
             }
             nodeAsr.getReference().adoptDesc.set(adesc);
             // FillNewNode done
@@ -369,6 +361,10 @@ public class MDList<T> implements ILockFreeDictionary<T>
 
         while ( true )
         {
+            // Reset dimensions of pred and curr.
+            dimOfPred[0] = 0;
+            dimOfCurr[0] = 0;
+
             // Start at the head with the two references
             predAndCurrAsr[PRED_INDEX] = null;
             predAndCurrAsr[CURR_INDEX] = head;

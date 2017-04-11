@@ -5,6 +5,9 @@ import LockFreeDataStructures.ILockFreeDictionary;
 
 public class PerformanceTestUtilities
 {
+    public static final int INSTRUCTIONS_PER_THREAD = 500000;
+    public static final int SKIP_LIST_HEIGHT = 16;
+    public static final int MAX_THREADS = 8;
 
     public static void RunPerfomanceTest(ILockFreeDictionary dict, InstructionDescriptor[][] instructionSets  ) throws InterruptedException
     {
@@ -70,5 +73,13 @@ public class PerformanceTestUtilities
         }
 
         return subset;
+    }
+
+    public static void PrefillDictionary (ILockFreeDictionary<Integer> dict, int keyMax)
+    {
+        for ( int i = 1; i < keyMax; i++ )
+        {
+            dict.Insert(i, i);
+        }
     }
 }
