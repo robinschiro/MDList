@@ -85,7 +85,7 @@ public class SkipList<T> implements ILockFreeDictionary<T>
             }
             Node<T> pred = preds[bottomLevel];
             Node<T> succ = succs[bottomLevel];
-            newNode.next[bottomLevel].set(succ,  false);
+//            newNode.next[bottomLevel].set(succ, false);
             if ( !pred.next[bottomLevel].compareAndSet(succ, newNode, false, false) )
             {
                 continue;
@@ -130,7 +130,7 @@ public class SkipList<T> implements ILockFreeDictionary<T>
                 succ = nodeToRemove.next[level].get(marked);
                 while ( !marked[0] )
                 {
-                    nodeToRemove.next[level].attemptMark(succ, true);
+                    nodeToRemove.next[level].compareAndSet(succ, succ, false, true);
                     succ = nodeToRemove.next[level].get(marked);
                 }
             }
@@ -210,7 +210,7 @@ public class SkipList<T> implements ILockFreeDictionary<T>
                 succ = curr.next[level].get(marked);
                 while ( marked[0] )
                 {
-                    curr = pred.next[level].getReference();
+                    curr = curr.next[level].getReference();
                     succ = curr.next[level].get(marked);
                 }
                 if ( curr.key < key )
